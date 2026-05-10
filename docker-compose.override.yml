@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  db:
+    ports:
+      - "5432:5432"
+
+  backend:
+    volumes:
+      - ./backend:/app
+    environment:
+      - ENV=development
+      - DATABASE_URL=postgresql://traceedu_user:traceedu_pass@db:5432/traceedu_db
+
+  frontend:
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - ENV=development
+      - WATCHPACK_POLLING=true
