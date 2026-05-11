@@ -2,27 +2,55 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
+# Database & Infrastructure
 from app.infrastructure.database.session import get_db
-from app.infrastructure.persistence.postgresql.user_repository import SQLAlchemyUserRepository
+from app.infrastructure.persistence.postgresql import (
+    SQLAlchemyUserRepository,
+    SQLAlchemySubjectRepository,
+    SQLAlchemyAccountRepository,
+    SQLAlchemyEnrollmentRepository,
+    SQLAlchemyClassGroupRepository,
+    SQLAlchemySubjectOfferingRepository
+)
+
+# Application Use Cases
 from app.application.user.register_user_use_case import RegisterUserUseCase, RegisterUserInput
 from app.application.user.list_users_use_case import ListUsersUseCase
-from .schemas import UserCreate, UserResponse
+from app.application.subject.register_subject_use_case import RegisterSubjectUseCase, RegisterSubjectInput
+from app.application.subject.list_subjects_use_case import ListSubjectsUseCase
+from app.application.subject.create_offering_use_case import CreateOfferingUseCase, CreateOfferingInput
+from app.application.enrollment.create_enrollment_use_case import CreateEnrollmentUseCase, CreateEnrollmentInput
+from app.application.enrollment.post_grade_use_case import PostGradeUseCase, PostGradeInput
+from app.application.classroom.create_group_use_case import CreateGroupUseCase, CreateGroupInput
+from app.application.classroom.enroll_student_use_case import EnrollStudentUseCase, EnrollStudentInput
+from app.application.classroom.get_class_report_use_case import GetClassGradesReportUseCase
+
+# Domain Policies
+from app.domain.enrollment.policies import SubstitutionRecoveryPolicy
+
+# Schemas
+from .schemas import (
+    UserCreate, UserResponse,
+    SubjectCreate, SubjectResponse,
+    SubjectOfferingCreate, SubjectOfferingResponse,
+    EnrollmentCreate, EnrollmentResponse,
+    ClassGroupCreate, ClassGroupResponse,
+    EnrollStudentInGroupRequest,
+    GradePostRequest, ClassReportResponse
+)
 
 router = APIRouter()
 
+# --- USER ROUTES ---
 @router.post("/users", response_model=UserResponse, status_code=201)
 def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
     try:
         repository = SQLAlchemyUserRepository(db)
         use_case = RegisterUserUseCase(repository)
-        
         use_case_input = RegisterUserInput(
-            name=user_data.name,
-            roles=user_data.roles,
-            email=user_data.email,
-            cpf=user_data.cpf
+            name=user_data.name, roles=user_data.roles, 
+            email=user_data.email, cpf=user_data.cpf
         )
-        
         return use_case.execute(use_case_input)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -36,29 +64,18 @@ def list_users(db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/status")
-def get_status():
-    return {"status": "ok", "message": "TraceEdu API operating normally with Hexagonal Architecture!"}
-
-from app.infrastructure.persistence.postgresql.subject_repository import SQLAlchemySubjectRepository
-from app.application.subject.register_subject_use_case import RegisterSubjectUseCase, RegisterSubjectInput
-from app.application.subject.list_subjects_use_case import ListSubjectsUseCase
-from .schemas import SubjectCreate, SubjectResponse
-
+# --- SUBJECT ROUTES ---
 @router.post("/subjects", response_model=SubjectResponse, status_code=201)
 def register_subject(subject_data: SubjectCreate, db: Session = Depends(get_db)):
     try:
         repository = SQLAlchemySubjectRepository(db)
         use_case = RegisterSubjectUseCase(repository)
-        
         use_case_input = RegisterSubjectInput(
-            name=subject_data.name,
-            level=subject_data.level,
+            name=subject_data.name, level=subject_data.level,
             academic_units=subject_data.academic_units,
             offering_type=subject_data.offering_type,
             description=subject_data.description
         )
-        
         return use_case.execute(use_case_input)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -72,62 +89,60 @@ def list_subjects(db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-from app.domain.classroom.repositories.classroom_repository import SubjectOfferingRepository
-from app.application.subject.create_offering_use_case import CreateOfferingUseCase, CreateOfferingInput
-from .schemas import SubjectOfferingCreate, SubjectOfferingResponse
-
+# --- OFFERING ROUTES ---
 @router.post("/subject-offerings", response_model=SubjectOfferingResponse, status_code=201)
 def create_subject_offering(offering_data: SubjectOfferingCreate, db: Session = Depends(get_db)):
     try:
         repository = SQLAlchemySubjectOfferingRepository(db)
         use_case = CreateOfferingUseCase(repository)
-        
         use_case_input = CreateOfferingInput(
             subject_id=offering_data.subject_id,
             period=offering_data.period,
             teacher_ids=offering_data.teacher_ids
         )
-        
         return use_case.execute(use_case_input)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-from app.infrastructure.persistence.postgresql.enrollment_repository import SQLAlchemyEnrollmentRepository
-from app.application.enrollment.create_enrollment_use_case import CreateEnrollmentUseCase, CreateEnrollmentInput
-from .schemas import EnrollmentCreate, EnrollmentResponse
-
+# --- ENROLLMENT & GRADES ROUTES ---
 @router.post("/enrollments", response_model=EnrollmentResponse, status_code=201)
 def create_enrollment(enrollment_data: EnrollmentCreate, db: Session = Depends(get_db)):
     try:
         repository = SQLAlchemyEnrollmentRepository(db)
         use_case = CreateEnrollmentUseCase(repository)
-        
         use_case_input = CreateEnrollmentInput(
             student_id=enrollment_data.student_id,
             subject_offering_id=enrollment_data.subject_offering_id
         )
-        
         return use_case.execute(use_case_input)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-from app.infrastructure.persistence.postgresql.classroom_repository import SQLAlchemyClassGroupRepository
-from app.application.classroom.create_group_use_case import CreateGroupUseCase, CreateGroupInput
-from app.application.classroom.enroll_student_use_case import EnrollStudentUseCase, EnrollStudentInput
-from .schemas import ClassGroupCreate, ClassGroupResponse, EnrollStudentInGroupRequest
+@router.post("/enrollments/{enrollment_id}/grades", status_code=204)
+def post_grade(enrollment_id: str, grade_data: GradePostRequest, db: Session = Depends(get_db)):
+    try:
+        repository = SQLAlchemyEnrollmentRepository(db)
+        policy = SubstitutionRecoveryPolicy() 
+        use_case = PostGradeUseCase(repository, policy)
+        use_case_input = PostGradeInput(
+            enrollment_id=enrollment_id, term=grade_data.term,
+            value=grade_data.value, grade_type=grade_data.grade_type
+        )
+        use_case.execute(use_case_input)
+        return None
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
+# --- CLASS GROUP ROUTES ---
 @router.post("/class-groups", response_model=ClassGroupResponse, status_code=201)
 def create_class_group(group_data: ClassGroupCreate, db: Session = Depends(get_db)):
     try:
         repository = SQLAlchemyClassGroupRepository(db)
         use_case = CreateGroupUseCase(repository)
-        
         use_case_input = CreateGroupInput(
-            name=group_data.name,
-            shift=group_data.shift,
+            name=group_data.name, shift=group_data.shift,
             base_offering_ids=group_data.base_offering_ids
         )
-        
         return use_case.execute(use_case_input)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -135,43 +150,13 @@ def create_class_group(group_data: ClassGroupCreate, db: Session = Depends(get_d
 @router.post("/class-groups/{group_id}/enroll-student", status_code=204)
 def enroll_student_in_group(group_id: str, request: EnrollStudentInGroupRequest, db: Session = Depends(get_db)):
     try:
-        # Repositories needed for the use case
         user_repo = SQLAlchemyUserRepository(db)
         class_repo = SQLAlchemyClassGroupRepository(db)
         enroll_repo = SQLAlchemyEnrollmentRepository(db)
-        
         use_case = EnrollStudentUseCase(user_repo, class_repo, enroll_repo)
-        
         use_case_input = EnrollStudentInput(
-            student_id=request.student_id,
-            class_group_id=group_id
+            student_id=request.student_id, class_group_id=group_id
         )
-        
-        use_case.execute(use_case_input)
-        return None
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-from app.application.enrollment.post_grade_use_case import PostGradeUseCase, PostGradeInput
-from app.application.classroom.get_class_report_use_case import GetClassGradesReportUseCase
-from app.domain.enrollment.policies import SubstitutionRecoveryPolicy
-from .schemas import GradePostRequest, ClassReportResponse
-
-@router.post("/enrollments/{enrollment_id}/grades", status_code=204)
-def post_grade(enrollment_id: str, grade_data: GradePostRequest, db: Session = Depends(get_db)):
-    try:
-        repository = SQLAlchemyEnrollmentRepository(db)
-        # We can inject different policies here if needed (could come from school config)
-        policy = SubstitutionRecoveryPolicy() 
-        use_case = PostGradeUseCase(repository, policy)
-        
-        use_case_input = PostGradeInput(
-            enrollment_id=enrollment_id,
-            term=grade_data.term,
-            value=grade_data.value,
-            grade_type=grade_data.grade_type
-        )
-        
         use_case.execute(use_case_input)
         return None
     except Exception as e:
@@ -183,8 +168,11 @@ def get_class_report(group_id: str, offering_id: str, db: Session = Depends(get_
         class_repo = SQLAlchemyClassGroupRepository(db)
         enroll_repo = SQLAlchemyEnrollmentRepository(db)
         user_repo = SQLAlchemyUserRepository(db)
-        
         use_case = GetClassGradesReportUseCase(class_repo, enroll_repo, user_repo)
         return use_case.execute(group_id, offering_id)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/status")
+def get_status():
+    return {"status": "ok", "message": "TraceEdu API operating normally with Hexagonal Architecture!"}
