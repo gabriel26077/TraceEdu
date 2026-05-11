@@ -1,0 +1,124 @@
+================================================================================
+AGREGADOS E ENTIDADES / AGGREGATES AND ENTITIES
+================================================================================
+
+1. AGREGADO: USUÁRIO / USER AGGREGATE
+--------------------------------------------------------------------------------
+User (Raiz/Root):
+    - uid
+    - nome / name
+    - email: Email (Value Object)
+    - nascimento / birthdate
+    - cpf: CPF (Value Object)
+    - roles: ["student", "teacher", "admin"]
+
+Account (Entidade/Entity):
+    - uid
+    - user_id
+    - username (Identificador)
+    - password_hash
+    - status: "active" | "inactive"
+
+2. AGREGADO: MATÉRIA / SUBJECT AGGREGATE
+--------------------------------------------------------------------------------
+Subject (Raiz/Root):
+    - uid
+    - name (Ex: "Matemática 2")
+    - description
+    - level: "Elementary 1" | "Elementary 2" | "High School"
+    - academic_units: int (Total terms, ex: 4)
+    - offering_type: "in-person" | "online" | "hybrid"
+
+3. AGREGADO: GRUPO / CLASS GROUP AGGREGATE
+--------------------------------------------------------------------------------
+ClassGroup (Raiz/Root):
+    - uid
+    - name (Ex: "7º Ano A")
+    - shift: "morning" | "afternoon" | "night"
+    - student_ids: User[] (Referência para IDs de alunos)
+    - base_subject_offering_ids: SubjectOffering[] (Pacote padrão)
+
+4. AGREGADO: OFERTA / SUBJECT OFFERING AGGREGATE
+--------------------------------------------------------------------------------
+SubjectOffering (Raiz/Root):
+    - uid
+    - subject_id
+    - teacher_ids: User[]
+    - period: AcademicPeriod (Value Object - Ex: "2026.1")
+    - enrollment_ids: Enrollment[] (Referência)
+
+5. AGREGADO: DESEMPENHO / ENROLLMENT AGGREGATE
+--------------------------------------------------------------------------------
+Enrollment (Raiz/Root):
+    - uid
+    - student_id
+    - subject_offering_id
+    - total_absences: int
+    - status: "enrolled" | "approved" | "failed" | "dropped"
+    - grades: Grade[] (Entidade vinculada ao Enrollment)
+
+Grade (Entidade/Entity):
+    - uid
+    - term: int (1, 2, 3...)
+    - value: AcademicGrade (Value Object: 0.0 to 10.0)
+
+================================================================================
+OBJETOS DE VALOR / VALUE OBJECTS (VOs)
+================================================================================
+
+- CPF: Validação de formato e dígitos. Imutável.
+- Email: Validação de formato.
+- AcademicGrade: Garante valor entre 0.0 e 10.0.
+- AcademicPeriod: Garante formato "YYYY.S" (ex: 2026.1).
+
+================================================================================
+NOTAS DE MODELAGEM / MODELING NOTES
+================================================================================
+
+1. [PT] Usamos "Materia" em vez de ComponenteCurricular por ser mais amigável.
+   [EN] We use "Subject" instead of CurricularComponent for better UX.
+
+2. [PT] A "Classe" serve como um acelerador de matrícula (pacote automático).
+   [EN] "ClassGroup" acts as an enrollment accelerator (automatic package).
+
+3. [PT] Faltas controladas na Matricula (total por matéria).
+   [EN] Absences are tracked at the Enrollment level (total per subject).
+
+4. [PT] Notas são individuais por unidade e ligadas à Matricula.
+   [EN] Grades are individual per term and linked to the Enrollment.
+
+================================================================================
+CASOS DE USO / USE CASES
+================================================================================
+
+[ADMINISTRATIVO / ADMIN]
+- Cadastrar Matéria / Register Subject: Create base curriculum.
+- Abrir Oferta / Open Offering: Link subject to teacher and period.
+- Criar Classe / Create ClassGroup: Define name, shift, and base subjects.
+- Matricular em Classe / Enroll in ClassGroup: Auto-enroll students in base subjects.
+- Matrícula Avulsa / Individual Enrollment: Add students to specific offerings (Mix).
+- Gerar Boletim / Generate Report Card: Consolidate grades and total absences.
+- Atualizar Dados / Update Info: Edit student or user personal data.
+- Sobrescrever Nota / Override Grade: Exceptional grade change (requires reason/audit).
+
+[PROFESSOR / TEACHER]
+- Lançar Nota / Post Grade: Record final grade for a specific term/unit.
+- Registrar Faltas / Post Absences: Update total absences in the subject.
+- Consultar Pauta / View Class List: Check student list and partial status.
+- Lançar Recuperação / Post Recovery: Record recovery grade for a unit or period.
+
+[SISTEMA / SYSTEM]
+- Fechamento / Period Closure: Process pass/fail status based on grades and attendance.
+- Auditoria / Audit Logs: Track who changed grades/absences and when.
+- Processar Recuperação / Process Recovery: Apply school-specific rules to calculate final grades after recovery.
+
+================================================================================
+REGRAS DE RECUPERAÇÃO / RECOVERY RULES
+================================================================================
+
+O sistema deve suportar diferentes estratégias de cálculo (Strategy Pattern):
+1. Substituição: Nota da recuperação substitui a nota regular se for maior.
+2. Média: Média aritmética entre a nota regular e a recuperação.
+3. Soma/Complemento: Recuperação soma pontos até o limite da média.
+
+*Nota: A modelagem de Grade deve suportar o campo 'type' (REGULAR | RECOVERY).*
