@@ -16,3 +16,66 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class SubjectCreate(BaseModel):
+    name: str
+    level: str
+    academic_units: int
+    offering_type: str
+    description: Optional[str] = None
+
+class SubjectResponse(BaseModel):
+    uid: str
+    name: str
+    level: str
+    academic_units: int
+    offering_type: str
+    description: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class SubjectOfferingCreate(BaseModel):
+    subject_id: str
+    period: str
+    teacher_ids: List[str]
+
+class SubjectOfferingResponse(BaseModel):
+    uid: str
+    subject_id: str
+    period: str
+    teacher_ids: List[str]
+
+    class Config:
+        from_attributes = True
+
+class EnrollmentCreate(BaseModel):
+    student_id: str
+    subject_offering_id: str
+
+class EnrollmentResponse(BaseModel):
+    uid: str
+    student_id: str
+    subject_offering_id: str
+    status: str
+
+    class Config:
+        from_attributes = True
+
+class ClassGroupCreate(BaseModel):
+    name: str
+    shift: str
+    base_offering_ids: List[str]
+
+class ClassGroupResponse(BaseModel):
+    uid: str
+    name: str
+    shift: str
+    student_ids: List[str]
+    base_offering_ids: List[str]
+
+    class Config:
+        from_attributes = True
+
+class EnrollStudentInGroupRequest(BaseModel):
+    student_id: str

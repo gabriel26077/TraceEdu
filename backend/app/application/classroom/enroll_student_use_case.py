@@ -23,7 +23,6 @@ class EnrollStudentUseCase:
         self.enrollment_repository = enrollment_repository
 
     def execute(self, input: EnrollStudentInput) -> None:
-        # 1. Fetch entities
         student = self.user_repository.get_by_id(input.student_id)
         if not student:
             raise DomainException(f"Student not found: {input.student_id}")
@@ -32,10 +31,8 @@ class EnrollStudentUseCase:
         if not class_group:
             raise DomainException(f"Class group not found: {input.class_group_id}")
 
-        # 2. Add student to the group
         class_group.add_student(student.uid)
         
-        # 3. Automatic enrollments for each base subject
         for offering_id in class_group.base_subject_offering_ids:
             enrollment = Enrollment(
                 uid=str(uuid4()),
@@ -44,5 +41,4 @@ class EnrollStudentUseCase:
             )
             self.enrollment_repository.save(enrollment)
             
-        # 4. Save the updated group
         self.class_group_repository.save(class_group)

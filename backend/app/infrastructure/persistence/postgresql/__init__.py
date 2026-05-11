@@ -2,3 +2,4 @@ from .user_repository import SQLAlchemyUserRepository
 from .account_repository import SQLAlchemyAccountRepository
 from .subject_repository import SQLAlchemySubjectRepository
 from .enrollment_repository import SQLAlchemyEnrollmentRepository
+from .classroom_repository import SQLAlchemyClassGroupRepository, SQLAlchemySubjectOfferingRepository
