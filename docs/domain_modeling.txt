@@ -10,7 +10,7 @@ User (Raiz/Root):
     - email: Email (Value Object) (opcional)
     - nascimento / birthdate (opcional)
     - cpf: CPF (Value Object) (opcional)
-    - roles: ["student", "teacher", "admin"]
+    - roles: ["student", "teacher", "admin", "clerk"]
 
 Account (Entidade/Entity):
     - uid
