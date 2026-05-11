@@ -8,8 +8,9 @@ from app.domain.exceptions import DomainException
 def test_register_user_successfully():
     # Arrange
     repository = Mock(spec=UserRepository)
-    # Important: ensure get_by_cpf returns None to simulate new user
+    # Ensure both uniqueness checks return None for a new user
     repository.get_by_cpf.return_value = None
+    repository.get_by_email.return_value = None
     
     use_case = RegisterUserUseCase(repository)
     
@@ -33,8 +34,8 @@ def test_register_user_successfully():
 def test_register_user_duplicate_cpf_fails():
     # Arrange
     repository = Mock(spec=UserRepository)
-    # Simulate existing user
     repository.get_by_cpf.return_value = Mock()
+    repository.get_by_email.return_value = None
     
     use_case = RegisterUserUseCase(repository)
     user_input = RegisterUserInput(name="John", roles=["student"], cpf="12345678909")
@@ -42,4 +43,4 @@ def test_register_user_duplicate_cpf_fails():
     # Act & Assert
     with pytest.raises(DomainException) as excinfo:
         use_case.execute(user_input)
-    assert "already exists" in str(excinfo.value)
+    assert "CPF" in str(excinfo.value)

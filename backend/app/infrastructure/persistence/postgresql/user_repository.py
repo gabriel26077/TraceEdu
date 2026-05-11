@@ -39,6 +39,10 @@ class SQLAlchemyUserRepository(UserRepository):
         model = self.session.query(UserModel).filter_by(cpf=cpf).first()
         return self._to_domain(model) if model else None
 
+    def get_by_email(self, email: str) -> Optional[User]:
+        model = self.session.query(UserModel).filter_by(email=email).first()
+        return self._to_domain(model) if model else None
+
     def get_all(self) -> List[User]:
         models = self.session.query(UserModel).all()
         return [self._to_domain(model) for model in models]

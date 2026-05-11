@@ -8,7 +8,7 @@ class UserModel(Base):
 
     uid = Column(String, primary_key=True)
     name = Column(String, nullable=False)
-    email = Column(String, nullable=True)
+    email = Column(String, unique=True, nullable=True)
     birthdate = Column(Date, nullable=True)
     cpf = Column(String, unique=True, nullable=True)
     roles = Column(JSON, nullable=False) # List of roles as JSONB

@@ -37,8 +37,14 @@ class RegisterUserUseCase:
             existing = self.user_repository.get_by_cpf(cpf.value)
             if existing:
                 raise DomainException(f"User with CPF {cpf.value} already exists")
+        
+        # 3. Check for duplicate email if provided
+        if email:
+            existing_email = self.user_repository.get_by_email(str(email))
+            if existing_email:
+                raise DomainException(f"User with Email {str(email)} already exists")
 
-        # 3. Create the entity
+        # 4. Create the entity
         user = User(
             uid=str(uuid4()),
             name=input.name,
