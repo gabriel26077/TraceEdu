@@ -7,9 +7,9 @@ AGREGADOS E ENTIDADES / AGGREGATES AND ENTITIES
 User (Raiz/Root):
     - uid
     - nome / name
-    - email: Email (Value Object)
-    - nascimento / birthdate
-    - cpf: CPF (Value Object)
+    - email: Email (Value Object) (opcional)
+    - nascimento / birthdate (opcional)
+    - cpf: CPF (Value Object) (opcional)
     - roles: ["student", "teacher", "admin"]
 
 Account (Entidade/Entity):
