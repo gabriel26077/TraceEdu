@@ -10,20 +10,16 @@ class SQLAlchemyUserRepository(UserRepository):
         self.session = session
 
     def save(self, user: User) -> None:
-        # Check if exists
         model = self.session.query(UserModel).filter_by(uid=user.uid).first()
-        
         roles_values = [role.value for role in user.roles]
         
         if model:
-            # Update
             model.name = user.name
             model.email = str(user.email) if user.email else None
             model.birthdate = user.birthdate
             model.cpf = user.cpf.value if user.cpf else None
             model.roles = roles_values
         else:
-            # Create new
             model = UserModel(
                 uid=user.uid,
                 name=user.name,
@@ -33,15 +29,15 @@ class SQLAlchemyUserRepository(UserRepository):
                 roles=roles_values
             )
             self.session.add(model)
-        
         self.session.commit()
 
     def get_by_id(self, uid: str) -> Optional[User]:
         model = self.session.query(UserModel).filter_by(uid=uid).first()
-        if not model:
-            return None
-        
-        return self._to_domain(model)
+        return self._to_domain(model) if model else None
+
+    def get_by_cpf(self, cpf: str) -> Optional[User]:
+        model = self.session.query(UserModel).filter_by(cpf=cpf).first()
+        return self._to_domain(model) if model else None
 
     def get_all(self) -> List[User]:
         models = self.session.query(UserModel).all()

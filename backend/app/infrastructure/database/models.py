@@ -10,7 +10,7 @@ class UserModel(Base):
     name = Column(String, nullable=False)
     email = Column(String, nullable=True)
     birthdate = Column(Date, nullable=True)
-    cpf = Column(String, nullable=True)
+    cpf = Column(String, unique=True, nullable=True)
     roles = Column(JSON, nullable=False) # List of roles as JSONB
 
     account = relationship("AccountModel", back_populates="user", uselist=False)

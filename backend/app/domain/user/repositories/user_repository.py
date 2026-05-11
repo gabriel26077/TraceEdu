@@ -12,6 +12,10 @@ class UserRepository(ABC):
         pass
 
     @abstractmethod
+    def get_by_cpf(self, cpf: str) -> Optional[User]:
+        pass
+
+    @abstractmethod
     def get_all(self) -> List[User]:
         pass
 

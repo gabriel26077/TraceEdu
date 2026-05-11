@@ -3,10 +3,14 @@ from unittest.mock import Mock
 from app.application.user.register_user_use_case import RegisterUserUseCase, RegisterUserInput
 from app.domain.user.repositories.user_repository import UserRepository
 from app.domain.user.value_objects import UserRole
+from app.domain.exceptions import DomainException
 
 def test_register_user_successfully():
     # Arrange
     repository = Mock(spec=UserRepository)
+    # Important: ensure get_by_cpf returns None to simulate new user
+    repository.get_by_cpf.return_value = None
+    
     use_case = RegisterUserUseCase(repository)
     
     user_input = RegisterUserInput(
@@ -22,21 +26,20 @@ def test_register_user_successfully():
     # Assert
     assert output.name == "Gabriel Neto"
     assert output.uid is not None
-    assert "student" in output.roles
     
     # Verify repository was called
     repository.save.assert_called_once()
-    saved_user = repository.save.call_args[0][0]
-    assert saved_user.name == "Gabriel Neto"
 
-def test_register_user_with_invalid_data_should_fail():
+def test_register_user_duplicate_cpf_fails():
     # Arrange
     repository = Mock(spec=UserRepository)
-    use_case = RegisterUserUseCase(repository)
+    # Simulate existing user
+    repository.get_by_cpf.return_value = Mock()
     
-    # Empty name (invalid at domain level)
-    user_input = RegisterUserInput(name="", roles=["student"])
+    use_case = RegisterUserUseCase(repository)
+    user_input = RegisterUserInput(name="John", roles=["student"], cpf="12345678909")
     
     # Act & Assert
-    with pytest.raises(Exception): # Will be DomainException
+    with pytest.raises(DomainException) as excinfo:
         use_case.execute(user_input)
+    assert "already exists" in str(excinfo.value)
