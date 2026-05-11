@@ -79,3 +79,24 @@ class ClassGroupResponse(BaseModel):
 
 class EnrollStudentInGroupRequest(BaseModel):
     student_id: str
+
+class GradePostRequest(BaseModel):
+    term: int
+    value: float
+    grade_type: str = "regular"
+
+class GradeReportItem(BaseModel):
+    term: int
+    value: float
+    type: str
+
+class StudentGradeReport(BaseModel):
+    student_id: str
+    student_name: str
+    is_enrolled: bool
+    grades: List[GradeReportItem]
+
+class ClassReportResponse(BaseModel):
+    class_group_name: str
+    subject_offering_id: str
+    students: List[StudentGradeReport]

@@ -12,5 +12,5 @@ class EnrollmentRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_student(self, student_id: str) -> List[Enrollment]:
+    def get_by_student_and_offering(self, student_id: str, offering_id: str) -> Optional[Enrollment]:
         pass

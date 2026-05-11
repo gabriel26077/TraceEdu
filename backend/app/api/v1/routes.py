@@ -151,3 +151,40 @@ def enroll_student_in_group(group_id: str, request: EnrollStudentInGroupRequest,
         return None
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+from app.application.enrollment.post_grade_use_case import PostGradeUseCase, PostGradeInput
+from app.application.classroom.get_class_report_use_case import GetClassGradesReportUseCase
+from app.domain.enrollment.policies import SubstitutionRecoveryPolicy
+from .schemas import GradePostRequest, ClassReportResponse
+
+@router.post("/enrollments/{enrollment_id}/grades", status_code=204)
+def post_grade(enrollment_id: str, grade_data: GradePostRequest, db: Session = Depends(get_db)):
+    try:
+        repository = SQLAlchemyEnrollmentRepository(db)
+        # We can inject different policies here if needed (could come from school config)
+        policy = SubstitutionRecoveryPolicy() 
+        use_case = PostGradeUseCase(repository, policy)
+        
+        use_case_input = PostGradeInput(
+            enrollment_id=enrollment_id,
+            term=grade_data.term,
+            value=grade_data.value,
+            grade_type=grade_data.grade_type
+        )
+        
+        use_case.execute(use_case_input)
+        return None
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/class-groups/{group_id}/offerings/{offering_id}/report", response_model=ClassReportResponse)
+def get_class_report(group_id: str, offering_id: str, db: Session = Depends(get_db)):
+    try:
+        class_repo = SQLAlchemyClassGroupRepository(db)
+        enroll_repo = SQLAlchemyEnrollmentRepository(db)
+        user_repo = SQLAlchemyUserRepository(db)
+        
+        use_case = GetClassGradesReportUseCase(class_repo, enroll_repo, user_repo)
+        return use_case.execute(group_id, offering_id)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

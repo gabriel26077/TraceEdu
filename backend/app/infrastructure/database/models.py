@@ -11,7 +11,7 @@ class UserModel(Base):
     email = Column(String, unique=True, nullable=True)
     birthdate = Column(Date, nullable=True)
     cpf = Column(String, unique=True, nullable=True)
-    roles = Column(JSON, nullable=False) # List of roles as JSONB
+    roles = Column(JSON, nullable=False)
 
     account = relationship("AccountModel", back_populates="user", uselist=False)
 
@@ -42,8 +42,8 @@ class ClassGroupModel(Base):
     uid = Column(String, primary_key=True)
     name = Column(String, nullable=False)
     shift = Column(String, nullable=False)
-    student_ids = Column(JSON, default=[]) # List of student UIDs
-    base_subject_ids = Column(JSON, default=[]) # List of subject offering UIDs
+    student_ids = Column(JSON, default=[])
+    base_subject_ids = Column(JSON, default=[])
 
 class SubjectOfferingModel(Base):
     __tablename__ = "subject_offerings"
@@ -51,7 +51,7 @@ class SubjectOfferingModel(Base):
     uid = Column(String, primary_key=True)
     subject_id = Column(String, ForeignKey("subjects.uid"), nullable=False)
     period = Column(String, nullable=False)
-    teacher_ids = Column(JSON, default=[]) # List of teacher UIDs
+    teacher_ids = Column(JSON, default=[])
 
 class EnrollmentModel(Base):
     __tablename__ = "enrollments"
@@ -61,16 +61,4 @@ class EnrollmentModel(Base):
     subject_offering_id = Column(String, ForeignKey("subject_offerings.uid"), nullable=False)
     total_absences = Column(Integer, default=0)
     status = Column(String, nullable=False)
-
-    grades = relationship("GradeModel", back_populates="enrollment", cascade="all, delete-orphan")
-
-class GradeModel(Base):
-    __tablename__ = "grades"
-
-    uid = Column(String, primary_key=True)
-    enrollment_id = Column(String, ForeignKey("enrollments.uid"), nullable=False)
-    term = Column(Integer, nullable=False)
-    value = Column(Float, nullable=False)
-    grade_type = Column(String, nullable=False)
-
-    enrollment = relationship("EnrollmentModel", back_populates="grades")
+    grades = Column(JSON, default=[]) # Notas armazenadas como JSONB

@@ -54,20 +54,31 @@ def test_complete_academic_flow(db_session):
         name="7A", shift="morning", base_offering_ids=[offering.uid]
     ))
     
-    # 5. Enroll Student in Group (The Orchestration)
+    # 5. Enroll Student in Group
     enroll_repo = SQLAlchemyEnrollmentRepository(db_session)
     enroll_student_in_group = EnrollStudentUseCase(user_repo, group_repo, enroll_repo)
     enroll_student_in_group.execute(EnrollStudentInput(
         student_id=student.uid, class_group_id=group.uid
     ))
     
-    # 6. VERIFICATION: Does the student have a math enrollment?
-    # We check directly in the enrollment repository
-    enrollments = db_session.query(Base.metadata.tables['enrollments']).filter_by(student_id=student.uid).all()
+    # 6. Post a Grade for that Student
+    # Find the enrollment first
+    enrollment = enroll_repo.get_by_student_and_offering(student.uid, offering.uid)
+    from app.application.enrollment.post_grade_use_case import PostGradeUseCase, PostGradeInput
+    from app.domain.enrollment.policies import SubstitutionRecoveryPolicy
+    post_grade = PostGradeUseCase(enroll_repo, SubstitutionRecoveryPolicy())
+    post_grade.execute(PostGradeInput(
+        enrollment_id=enrollment.uid, term=1, value=9.5, grade_type="regular"
+    ))
     
-    assert len(enrollments) == 1
-    assert enrollments[0].subject_offering_id == offering.uid
+    # 7. Generate Class Report
+    from app.application.classroom.get_class_report_use_case import GetClassGradesReportUseCase
+    get_report = GetClassGradesReportUseCase(group_repo, enroll_repo, user_repo)
+    report = get_report.execute(group.uid, offering.uid)
     
-    # Verify student is in the group
-    saved_group = group_repo.get_by_id(group.uid)
-    assert student.uid in saved_group.student_ids
+    # 8. VERIFICATION
+    assert report.class_group_name == "7A"
+    assert len(report.students) == 1
+    assert report.students[0].student_name == "John Doe"
+    assert report.students[0].is_enrolled is True
+    assert report.students[0].grades[0]["value"] == 9.5
