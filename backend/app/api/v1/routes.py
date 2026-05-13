@@ -32,6 +32,7 @@ from app.application.subject.create_global_subject_use_case import CreateGlobalS
 from app.application.subject.maintenance_global_subject_use_cases import UpdateGlobalSubjectUseCase, DeleteGlobalSubjectUseCase
 from app.application.subject.create_offering_use_case import CreateOfferingUseCase, CreateOfferingInput
 from app.application.subject.list_offerings_use_case import ListOfferingsUseCase
+from app.application.subject.delete_offering_use_case import DeleteOfferingUseCase
 from app.application.enrollment.create_enrollment_use_case import CreateEnrollmentUseCase, CreateEnrollmentInput
 from app.application.enrollment.post_grade_use_case import PostGradeUseCase, PostGradeInput
 from app.application.classroom.create_group_use_case import CreateGroupUseCase, CreateGroupInput
@@ -387,6 +388,18 @@ def list_subject_offerings(school_id: str, db: Session = Depends(get_db), curren
     repository = SQLAlchemySubjectOfferingRepository(db)
     use_case = ListOfferingsUseCase(repository)
     return use_case.execute(school_id)
+
+@router.delete("/subject-offerings/{uid}", status_code=204)
+def delete_subject_offering(uid: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    try:
+        repository = SQLAlchemySubjectOfferingRepository(db)
+        use_case = DeleteOfferingUseCase(repository)
+        use_case.execute(uid)
+        db.commit()
+        return None
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/schools/{school_id}/enrollments", response_model=EnrollmentResponse, status_code=201)
 def create_enrollment(school_id: str, enrollment_data: EnrollmentCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_access)):

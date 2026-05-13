@@ -30,6 +30,10 @@ class SQLAlchemySubjectOfferingRepository(SubjectOfferingRepository):
         models = self.session.query(SubjectOfferingModel).filter_by(school_id=school_id).all()
         return [self._to_entity(m) for m in models]
 
+    def delete(self, uid: str) -> None:
+        self.session.query(SubjectOfferingModel).filter_by(uid=uid).delete()
+        self.session.flush()
+
     def _to_entity(self, model: SubjectOfferingModel) -> SubjectOffering:
         return SubjectOffering(
             uid=model.uid,
