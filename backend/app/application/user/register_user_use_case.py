@@ -1,66 +1,41 @@
 from dataclasses import dataclass
 from typing import List, Optional
-from uuid import uuid4
 from app.domain.user.entities.user import User
-from app.domain.user.value_objects import CPF, Email, UserRole
 from app.domain.user.repositories.user_repository import UserRepository
-from app.domain.exceptions import DomainException
+from app.domain.school.entities.membership import SchoolMember
+from app.domain.school.repositories.membership_repository import SchoolMemberRepository
 
 @dataclass
 class RegisterUserInput:
     name: str
+    school_id: str
     roles: List[str]
     email: Optional[str] = None
     cpf: Optional[str] = None
-    birthdate_iso: Optional[str] = None
 
-@dataclass
-class RegisterUserOutput:
-    uid: str
-    name: str
-    roles: List[str]
-    email: Optional[str] = None
-    cpf: Optional[str] = None
+import uuid
 
 class RegisterUserUseCase:
-    def __init__(self, user_repository: UserRepository):
-        self.user_repository = user_repository
+    def __init__(self, repository: UserRepository, member_repo: SchoolMemberRepository):
+        self.repository = repository
+        self.member_repo = member_repo
 
-    def execute(self, input: RegisterUserInput) -> RegisterUserOutput:
-        # 1. Map input to domain
-        roles = [UserRole(role_str) for role_str in input.roles]
-        email = Email(input.email) if input.email else None
-        cpf = CPF(input.cpf) if input.cpf else None
-        
-        # 2. Check for duplicates if CPF is provided
-        if cpf:
-            existing = self.user_repository.get_by_cpf(cpf.value)
-            if existing:
-                raise DomainException(f"User with CPF {cpf.value} already exists")
-        
-        # 3. Check for duplicate email if provided
-        if email:
-            existing_email = self.user_repository.get_by_email(str(email))
-            if existing_email:
-                raise DomainException(f"User with Email {str(email)} already exists")
-
-        # 4. Create the entity
+    def execute(self, input: RegisterUserInput) -> User:
         user = User(
-            uid=str(uuid4()),
+            uid=str(uuid.uuid4()),
             name=input.name,
-            roles=roles,
-            email=email,
-            cpf=cpf
+            email=input.email,
+            cpf=input.cpf
         )
+        self.repository.save(user)
         
-        # 3. Persist
-        self.user_repository.save(user)
-        
-        # 4. Return output with all fields
-        return RegisterUserOutput(
-            uid=user.uid,
-            name=user.name,
-            roles=[role.value for role in user.roles],
-            email=str(user.email) if user.email else None,
-            cpf=user.cpf.value if user.cpf else None
+        # Create membership link
+        membership = SchoolMember(
+            uid=str(uuid.uuid4()),
+            school_id=input.school_id,
+            user_id=user.uid,
+            roles=input.roles
         )
+        self.member_repo.save(membership)
+        
+        return user
