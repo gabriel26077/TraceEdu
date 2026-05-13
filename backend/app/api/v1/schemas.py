@@ -21,6 +21,7 @@ class UserResponse(BaseModel):
 class SubjectCreate(BaseModel):
     name: str
     level: str
+    grade: str
     academic_units: int
     offering_type: str
     description: Optional[str] = None
@@ -29,6 +30,7 @@ class SubjectResponse(BaseModel):
     uid: str
     name: str
     level: str
+    grade: str
     academic_units: int
     offering_type: str
     description: Optional[str] = None

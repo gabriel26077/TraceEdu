@@ -7,6 +7,8 @@ class Subject:
     school_id: str
     name: str
     level: str
+    grade: str  # e.g., "1", "2", "I", "II"
     academic_units: int
     offering_type: str
     description: Optional[str] = None
+    template_id: Optional[str] = None

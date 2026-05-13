@@ -8,6 +8,10 @@ class SubjectRepository(ABC):
         pass
 
     @abstractmethod
+    def delete(self, uid: str) -> None:
+        pass
+
+    @abstractmethod
     def get_by_id(self, uid: str) -> Optional[Subject]:
         pass
 

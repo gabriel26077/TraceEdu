@@ -12,14 +12,24 @@ from app.infrastructure.persistence.postgresql import (
     SQLAlchemyClassGroupRepository,
     SQLAlchemySubjectOfferingRepository,
     SQLAlchemySchoolRepository,
-    SQLAlchemySchoolMemberRepository
+    SQLAlchemySchoolMemberRepository,
+    SQLAlchemyGlobalSubjectRepository
 )
 
 # Application Use Cases
 from app.application.user.register_user_use_case import RegisterUserUseCase, RegisterUserInput
 from app.application.user.list_users_use_case import ListUsersUseCase
-from app.application.subject.register_subject_use_case import RegisterSubjectUseCase, RegisterSubjectInput
+from app.application.subject.register_subject_use_case import (
+    RegisterSubjectUseCase, 
+    RegisterSubjectInput,
+    UpdateSubjectUseCase,
+    DeleteSubjectUseCase
+)
 from app.application.subject.list_subjects_use_case import ListSubjectsUseCase
+from app.application.subject.list_global_subjects_use_case import ListGlobalSubjectsUseCase
+from app.application.subject.import_subjects_use_case import ImportSubjectsUseCase
+from app.application.subject.create_global_subject_use_case import CreateGlobalSubjectUseCase
+from app.application.subject.maintenance_global_subject_use_cases import UpdateGlobalSubjectUseCase, DeleteGlobalSubjectUseCase
 from app.application.subject.create_offering_use_case import CreateOfferingUseCase, CreateOfferingInput
 from app.application.subject.list_offerings_use_case import ListOfferingsUseCase
 from app.application.enrollment.create_enrollment_use_case import CreateEnrollmentUseCase, CreateEnrollmentInput
@@ -160,6 +170,22 @@ def register_user(school_id: str, user_data: UserCreate, db: Session = Depends(g
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
+@router.get("/schools/{school_id}/users", response_model=List[UserResponse])
+def list_school_users(school_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_access)):
+    repository = SQLAlchemyUserRepository(db)
+    use_case = ListUsersUseCase(repository)
+    users = use_case.execute(school_id)
+    
+    # Format for response
+    return [
+        {
+            "uid": u.uid,
+            "name": u.name,
+            "email": str(u.email) if u.email else None,
+            "roles": [str(r) for r in u.roles]
+        } for u in users
+    ]
+
 @router.put("/users/{user_id}/password", status_code=204)
 def reset_password(user_id: str, data: PasswordReset, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     try:
@@ -180,18 +206,110 @@ def reset_password(user_id: str, data: PasswordReset, db: Session = Depends(get_
         if isinstance(e, HTTPException): raise e
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/schools/{school_id}/users", response_model=List[UserResponse])
-def list_users(school_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_access)):
-    repository = SQLAlchemyUserRepository(db)
-    use_case = ListUsersUseCase(repository)
-    users = use_case.execute(school_id)
-    # Map domain objects to primitive dicts for FastAPI serialization
-    return [{
-        "uid": u.uid,
-        "name": u.name,
-        "email": str(u.email) if u.email else None,
-        "roles": [str(r) for r in u.roles]
-    } for u in users]
+@router.get("/subjects/global")
+def list_global_subjects(db: Session = Depends(get_db)):
+    repo = SQLAlchemyGlobalSubjectRepository(db)
+    use_case = ListGlobalSubjectsUseCase(repo)
+    return use_case.execute()
+
+@router.post("/subjects/global")
+def create_global_subject(data: dict, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    # Check if user is platform admin
+    if "platform_admin" not in current_user.global_roles:
+        raise HTTPException(status_code=403, detail="Only platform admins can manage the base catalog")
+        
+    repo = SQLAlchemyGlobalSubjectRepository(db)
+    use_case = CreateGlobalSubjectUseCase(repo)
+    
+    try:
+        new_subject = use_case.execute(
+            name=data["name"],
+            level=data["level"],
+            grade=data["grade"],
+            academic_units=data.get("academic_units", 3),
+            category=data.get("category"),
+            description=data.get("description")
+        )
+        db.commit()
+        return new_subject
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.put("/subjects/global/{uid}")
+def update_global_subject(uid: str, data: dict, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    if "platform_admin" not in current_user.global_roles:
+        raise HTTPException(status_code=403, detail="Forbidden")
+        
+    repo = SQLAlchemyGlobalSubjectRepository(db)
+    use_case = UpdateGlobalSubjectUseCase(repo)
+    
+    try:
+        updated = use_case.execute(
+            uid=uid,
+            name=data["name"],
+            level=data["level"],
+            grade=data["grade"],
+            academic_units=data["academic_units"],
+            category=data.get("category"),
+            description=data.get("description")
+        )
+        db.commit()
+        return updated
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.delete("/subjects/global/{uid}")
+def delete_global_subject(uid: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    if "platform_admin" not in current_user.global_roles:
+        raise HTTPException(status_code=403, detail="Forbidden")
+        
+    repo = SQLAlchemyGlobalSubjectRepository(db)
+    use_case = DeleteGlobalSubjectUseCase(repo)
+    
+    try:
+        use_case.execute(uid)
+        db.commit()
+        return {"status": "success"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/subjects/import")
+def import_subjects(data: dict, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    # data: { "school_id": "...", "global_subject_ids": ["...", "..."] }
+    global_repo = SQLAlchemyGlobalSubjectRepository(db)
+    subject_repo = SQLAlchemySubjectRepository(db)
+    use_case = ImportSubjectsUseCase(global_repo, subject_repo)
+    
+    try:
+        results = use_case.execute(data["school_id"], data["global_subject_ids"])
+        db.commit()
+        return {"status": "success", "count": len(results)}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/schools/{school_id}/subjects")
+def list_school_subjects(school_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    repo = SQLAlchemySubjectRepository(db)
+    subjects = repo.list_by_school(school_id)
+    
+    # Return grouped by level and grade for the frontend tree view
+    # Format: { "fundamental_1": { "1": [...], "2": [...] }, ... }
+    grouped = {}
+    for s in subjects:
+        if s.level not in grouped: grouped[s.level] = {}
+        if s.grade not in grouped[s.level]: grouped[s.level][s.grade] = []
+        grouped[s.level][s.grade].append({
+            "uid": s.uid,
+            "name": s.name,
+            "description": s.description,
+            "academic_units": s.academic_units
+        })
+        
+    return grouped
 
 @router.post("/schools/{school_id}/subjects", response_model=SubjectResponse, status_code=201)
 def register_subject(school_id: str, subject_data: SubjectCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_access)):
@@ -200,12 +318,44 @@ def register_subject(school_id: str, subject_data: SubjectCreate, db: Session = 
         use_case = RegisterSubjectUseCase(repository)
         use_case_input = RegisterSubjectInput(
             school_id=school_id, name=subject_data.name, level=subject_data.level,
+            grade=subject_data.grade,
             academic_units=subject_data.academic_units,
             offering_type=subject_data.offering_type, description=subject_data.description
         )
         result = use_case.execute(use_case_input)
         db.commit()
         return result
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.put("/subjects/{uid}", response_model=SubjectResponse)
+def update_subject(uid: str, subject_data: SubjectCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    try:
+        repository = SQLAlchemySubjectRepository(db)
+        use_case = UpdateSubjectUseCase(repository)
+        result = use_case.execute(
+            uid=uid,
+            name=subject_data.name,
+            level=subject_data.level,
+            grade=subject_data.grade,
+            academic_units=subject_data.academic_units,
+            description=subject_data.description
+        )
+        db.commit()
+        return result
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.delete("/subjects/{uid}")
+def delete_subject(uid: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    try:
+        repository = SQLAlchemySubjectRepository(db)
+        use_case = DeleteSubjectUseCase(repository)
+        use_case.execute(uid)
+        db.commit()
+        return {"status": "success"}
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))

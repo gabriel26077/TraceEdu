@@ -16,12 +16,20 @@ class SQLAlchemySubjectRepository(SubjectRepository):
         model.school_id = subject.school_id
         model.name = subject.name
         model.level = subject.level
+        model.grade = subject.grade
         model.academic_units = subject.academic_units
         model.offering_type = subject.offering_type
         model.description = subject.description
+        model.template_id = subject.template_id
         
         self.session.add(model)
         self.session.flush()
+
+    def delete(self, uid: str) -> None:
+        model = self.session.query(SubjectModel).filter_by(uid=uid).first()
+        if model:
+            self.session.delete(model)
+            self.session.flush()
 
     def get_by_id(self, uid: str) -> Optional[Subject]:
         model = self.session.query(SubjectModel).filter_by(uid=uid).first()
@@ -31,9 +39,11 @@ class SQLAlchemySubjectRepository(SubjectRepository):
             school_id=model.school_id,
             name=model.name,
             level=model.level,
+            grade=model.grade,
             academic_units=model.academic_units,
             offering_type=model.offering_type,
-            description=model.description
+            description=model.description,
+            template_id=model.template_id
         )
 
     def list_by_school(self, school_id: str) -> List[Subject]:

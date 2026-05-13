@@ -55,15 +55,27 @@ class AccountModel(Base):
 
 # Academic Entities (Always linked to a School)
 
+class GlobalSubjectModel(Base):
+    __tablename__ = "global_subjects"
+    uid = Column(String, primary_key=True)
+    name = Column(String, nullable=False)
+    level = Column(String, nullable=False)
+    grade = Column(String, nullable=False)
+    academic_units = Column(Integer, nullable=False, default=3)
+    description = Column(String, nullable=True)
+    category = Column(String, nullable=True)
+
 class SubjectModel(Base):
     __tablename__ = "subjects"
     uid = Column(String, primary_key=True)
     school_id = Column(String, ForeignKey("schools.uid"), nullable=False)
     name = Column(String, nullable=False)
     level = Column(String, nullable=False)
+    grade = Column(String, nullable=False) # e.g. "1", "2", "I"
     academic_units = Column(Integer, nullable=False)
     offering_type = Column(String, nullable=False)
     description = Column(String, nullable=True)
+    template_id = Column(String, nullable=True) # Ref to GlobalSubject
 
 class ClassGroupModel(Base):
     __tablename__ = "class_groups"

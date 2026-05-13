@@ -6,3 +6,4 @@ from .class_group_repository import SQLAlchemyClassGroupRepository
 from .subject_offering_repository import SQLAlchemySubjectOfferingRepository
 from .school_repository import SQLAlchemySchoolRepository
 from .membership_repository import SQLAlchemySchoolMemberRepository
+from .global_subject_repository import SQLAlchemyGlobalSubjectRepository
