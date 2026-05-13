@@ -1,7 +1,6 @@
-from typing import Optional, List
+from typing import List, Optional
 from sqlalchemy.orm import Session
 from app.domain.subject.entities.subject import Subject
-from app.domain.subject.value_objects import SubjectLevel, OfferingType
 from app.domain.subject.repositories.subject_repository import SubjectRepository
 from app.infrastructure.database.models import SubjectModel
 
@@ -11,42 +10,32 @@ class SQLAlchemySubjectRepository(SubjectRepository):
 
     def save(self, subject: Subject) -> None:
         model = self.session.query(SubjectModel).filter_by(uid=subject.uid).first()
+        if not model:
+            model = SubjectModel(uid=subject.uid)
         
-        if model:
-            model.name = subject.name
-            model.level = subject.level.value
-            model.academic_units = subject.academic_units
-            model.offering_type = subject.offering_type.value
-            model.description = subject.description
-        else:
-            model = SubjectModel(
-                uid=subject.uid,
-                name=subject.name,
-                level=subject.level.value,
-                academic_units=subject.academic_units,
-                offering_type=subject.offering_type.value,
-                description=subject.description
-            )
-            self.session.add(model)
+        model.school_id = subject.school_id
+        model.name = subject.name
+        model.level = subject.level
+        model.academic_units = subject.academic_units
+        model.offering_type = subject.offering_type
+        model.description = subject.description
         
-        self.session.commit()
+        self.session.add(model)
+        self.session.flush()
 
     def get_by_id(self, uid: str) -> Optional[Subject]:
         model = self.session.query(SubjectModel).filter_by(uid=uid).first()
-        if not model:
-            return None
-        return self._to_domain(model)
-
-    def get_all(self) -> List[Subject]:
-        models = self.session.query(SubjectModel).all()
-        return [self._to_domain(model) for model in models]
-
-    def _to_domain(self, model: SubjectModel) -> Subject:
+        if not model: return None
         return Subject(
             uid=model.uid,
+            school_id=model.school_id,
             name=model.name,
-            level=SubjectLevel(model.level),
+            level=model.level,
             academic_units=model.academic_units,
-            offering_type=OfferingType(model.offering_type),
+            offering_type=model.offering_type,
             description=model.description
         )
+
+    def list_by_school(self, school_id: str) -> List[Subject]:
+        models = self.session.query(SubjectModel).filter_by(school_id=school_id).all()
+        return [self.get_by_id(m.uid) for m in models]

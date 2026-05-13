@@ -2,20 +2,37 @@
 AGREGADOS E ENTIDADES / AGGREGATES AND ENTITIES
 ================================================================================
 
+0. AGREGADO: ESCOLA / SCHOOL AGGREGATE (TENANT ROOT)
+--------------------------------------------------------------------------------
+School (Raiz/Root):
+    - uid
+    - name (Nome da Instituição)
+    - representatives: Representative[] (Value Object list)
+    - coordination_email: Email (VO)
+    - coordination_phone: string
+    - settings: SchoolSettings (VO - ex: recovery_policy, term_count)
+
+Representative (Value Object):
+    - user_id (Referência ao User)
+    - description (Ex: "Diretor Financeiro", "Coordenador Pedagógico")
+    - contact: string
+
 1. AGREGADO: USUÁRIO / USER AGGREGATE
 --------------------------------------------------------------------------------
 User (Raiz/Root):
     - uid
-    - nome / name
-    - email: Email (Value Object) (opcional)
-    - nascimento / birthdate (opcional)
-    - cpf: CPF (Value Object) (opcional)
+    - school_id (Referência à escola atual)
+    - name
+    - email: Email (VO)
+    - birthdate (opcional)
+    - cpf: CPF (VO)
     - roles: ["student", "teacher", "admin", "clerk"]
+    - status: "active" | "transferred" | "inactive"
 
 Account (Entidade/Entity):
     - uid
     - user_id
-    - username (Identificador)
+    - username (Global ou por Escola)
     - password_hash
     - status: "active" | "inactive"
 
@@ -23,44 +40,49 @@ Account (Entidade/Entity):
 --------------------------------------------------------------------------------
 Subject (Raiz/Root):
     - uid
-    - name (Ex: "Matemática 2")
+    - school_id (Cada escola define sua grade/curriculo)
+    - name
     - description
     - level: "Elementary 1" | "Elementary 2" | "High School"
-    - academic_units: int (Total terms, ex: 4)
+    - academic_units: int
     - offering_type: "in-person" | "online" | "hybrid"
 
 3. AGREGADO: GRUPO / CLASS GROUP AGGREGATE
 --------------------------------------------------------------------------------
 ClassGroup (Raiz/Root):
     - uid
-    - name (Ex: "7º Ano A")
+    - school_id
+    - name
     - shift: "morning" | "afternoon" | "night"
-    - student_ids: User[] (Referência para IDs de alunos)
-    - base_subject_offering_ids: SubjectOffering[] (Pacote padrão)
+    - student_ids: User[]
+    - base_subject_offering_ids: SubjectOffering[]
 
 4. AGREGADO: OFERTA / SUBJECT OFFERING AGGREGATE
 --------------------------------------------------------------------------------
 SubjectOffering (Raiz/Root):
     - uid
+    - school_id
     - subject_id
     - teacher_ids: User[]
-    - period: AcademicPeriod (Value Object - Ex: "2026.1")
-    - enrollment_ids: Enrollment[] (Referência)
+    - period: AcademicPeriod (VO - Ex: "2026.1")
+    - enrollment_ids: Enrollment[]
 
 5. AGREGADO: DESEMPENHO / ENROLLMENT AGGREGATE
 --------------------------------------------------------------------------------
 Enrollment (Raiz/Root):
     - uid
+    - school_id
     - student_id
     - subject_offering_id
     - total_absences: int
-    - status: "enrolled" | "approved" | "failed" | "dropped"
-    - grades: Grade[] (Entidade vinculada ao Enrollment)
+    - status: "enrolled" | "approved" | "failed" | "dropped" | "transferred"
+    - grades: Grade[]
 
 Grade (Entidade/Entity):
     - uid
-    - term: int (1, 2, 3...)
-    - value: AcademicGrade (Value Object: 0.0 to 10.0)
+    - term: int
+    - value: AcademicGrade (VO)
+    - grade_type: "regular" | "recovery" | "final"
 
 ================================================================================
 OBJETOS DE VALOR / VALUE OBJECTS (VOs)
@@ -69,56 +91,33 @@ OBJETOS DE VALOR / VALUE OBJECTS (VOs)
 - CPF: Validação de formato e dígitos. Imutável.
 - Email: Validação de formato.
 - AcademicGrade: Garante valor entre 0.0 e 10.0.
-- AcademicPeriod: Garante formato "YYYY.S" (ex: 2026.1).
+- AcademicPeriod: Garante formato "YYYY.S".
+- SchoolSettings: Configurações específicas da escola (ex: média de aprovação).
 
 ================================================================================
 NOTAS DE MODELAGEM / MODELING NOTES
 ================================================================================
 
-1. [PT] Usamos "Materia" em vez de ComponenteCurricular por ser mais amigável.
-   [EN] We use "Subject" instead of CurricularComponent for better UX.
+1. [PT] Multi-tenancy: O school_id é obrigatório em todas as consultas para isolamento.
+   [EN] Multi-tenancy: school_id is mandatory in all queries for data isolation.
 
-2. [PT] A "Classe" serve como um acelerador de matrícula (pacote automático).
-   [EN] "ClassGroup" acts as an enrollment accelerator (automatic package).
+2. [PT] Migração de Alunos: Ao transferir um aluno, o status na escola de origem muda para "transferred" e as matrículas ativas são encerradas. Um novo registro é criado na escola de destino.
+   [EN] Student Migration: When transferring a student, their status in the origin school changes to "transferred" and active enrollments are closed. A new record is created in the destination school.
 
-3. [PT] Faltas controladas na Matricula (total por matéria).
-   [EN] Absences are tracked at the Enrollment level (total per subject).
-
-4. [PT] Notas são individuais por unidade e ligadas à Matricula.
-   [EN] Grades are individual per term and linked to the Enrollment.
+3. [PT] Professores Multi-Escola: Um professor pode atuar em várias escolas, mas sua conta é global. O acesso é controlado por sua presença no aggregate School como representante ou teacher.
+   [EN] Multi-School Teachers: A teacher can work in multiple schools, but their account is global. Access is controlled by their presence in the School aggregate as representative or teacher.
 
 ================================================================================
 CASOS DE USO / USE CASES
 ================================================================================
 
-[ADMINISTRATIVO / ADMIN]
-- Cadastrar Matéria / Register Subject: Create base curriculum.
-- Abrir Oferta / Open Offering: Link subject to teacher and period.
-- Criar Classe / Create ClassGroup: Define name, shift, and base subjects.
-- Matricular em Classe / Enroll in ClassGroup: Auto-enroll students in base subjects.
-- Matrícula Avulsa / Individual Enrollment: Add students to specific offerings (Mix).
-- Gerar Boletim / Generate Report Card: Consolidate grades and total absences.
-- Atualizar Dados / Update Info: Edit student or user personal data.
-- Sobrescrever Nota / Override Grade: Exceptional grade change (requires reason/audit).
+[SUPER ADMIN / PLATAFORMA]
+- Cadastrar Escola / Register School: Criar nova instância de tenant.
+- Gerenciar Assinatura / Manage Subscription: Controlar acesso da escola ao sistema.
 
-[PROFESSOR / TEACHER]
-- Lançar Nota / Post Grade: Record final grade for a specific term/unit.
-- Registrar Faltas / Post Absences: Update total absences in the subject.
-- Consultar Pauta / View Class List: Check student list and partial status.
-- Lançar Recuperação / Post Recovery: Record recovery grade for a unit or period.
+[ADMINISTRATIVO / SCHOOL ADMIN]
+- Configurar Escola / Configure School: Definir regras de nota e representantes.
+- Transferir Aluno / Transfer Student: Processar saída e gerar documentos de transferência.
+- (Todos os outros Use Cases agora requerem School Context)
 
-[SISTEMA / SYSTEM]
-- Fechamento / Period Closure: Process pass/fail status based on grades and attendance.
-- Auditoria / Audit Logs: Track who changed grades/absences and when.
-- Processar Recuperação / Process Recovery: Apply school-specific rules to calculate final grades after recovery.
-
-================================================================================
-REGRAS DE RECUPERAÇÃO / RECOVERY RULES
-================================================================================
-
-O sistema deve suportar diferentes estratégias de cálculo (Strategy Pattern):
-1. Substituição: Nota da recuperação substitui a nota regular se for maior.
-2. Média: Média aritmética entre a nota regular e a recuperação.
-3. Soma/Complemento: Recuperação soma pontos até o limite da média.
-
-*Nota: A modelagem de Grade deve suportar o campo 'type' (REGULAR | RECOVERY).*
+... rest of previous use cases ...

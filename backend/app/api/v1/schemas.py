@@ -6,6 +6,7 @@ class UserCreate(BaseModel):
     roles: List[str]
     email: Optional[EmailStr] = None
     cpf: Optional[str] = None
+    password: Optional[str] = None
 
 class UserResponse(BaseModel):
     uid: str
@@ -100,3 +101,23 @@ class ClassReportResponse(BaseModel):
     class_group_name: str
     subject_offering_id: str
     students: List[StudentGradeReport]
+
+class PasswordReset(BaseModel):
+    new_password: str
+
+class SchoolCreate(BaseModel):
+    name: str
+    coordination_email: str
+    admin_name: str
+    admin_email: str
+    admin_password: str
+    admin_cpf: Optional[str] = None
+
+class SchoolResponse(BaseModel):
+    uid: str
+    name: str
+    coordination_email: str
+    status: str
+
+    class Config:
+        from_attributes = True

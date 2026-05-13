@@ -16,7 +16,7 @@ app.add_middleware(
 )
 
 # Include API routes
-app.include_router(api_router, prefix="/api")
+app.include_router(api_router, prefix="/api/v1")
 
 @app.on_event("startup")
 def startup_event():

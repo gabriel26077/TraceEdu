@@ -1,7 +1,18 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Date, JSON, Float
+from sqlalchemy import Column, Integer, String, ForeignKey, Date, JSON, Float, UniqueConstraint
 from sqlalchemy.orm import relationship, declarative_base
 
 Base = declarative_base()
+
+class SchoolModel(Base):
+    __tablename__ = "schools"
+
+    uid = Column(String, primary_key=True)
+    name = Column(String, nullable=False)
+    representatives = Column(JSON, default=[]) 
+    coordination_email = Column(String, nullable=True)
+    coordination_phone = Column(String, nullable=True)
+    settings = Column(JSON, default={})
+    status = Column(String, default="active")
 
 class UserModel(Base):
     __tablename__ = "users"
@@ -9,11 +20,27 @@ class UserModel(Base):
     uid = Column(String, primary_key=True)
     name = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=True)
-    birthdate = Column(Date, nullable=True)
     cpf = Column(String, unique=True, nullable=True)
-    roles = Column(JSON, nullable=False)
+    birthdate = Column(Date, nullable=True)
+    global_roles = Column(JSON, default=[]) # e.g. ["platform_admin"]
+    status = Column(String, default="active")
 
     account = relationship("AccountModel", back_populates="user", uselist=False)
+    memberships = relationship("SchoolMemberModel", back_populates="user")
+
+class SchoolMemberModel(Base):
+    __tablename__ = "school_members"
+
+    uid = Column(String, primary_key=True)
+    school_id = Column(String, ForeignKey("schools.uid"), nullable=False)
+    user_id = Column(String, ForeignKey("users.uid"), nullable=False)
+    roles = Column(JSON, nullable=False) # Roles specific to THIS school
+    status = Column(String, default="active")
+
+    user = relationship("UserModel", back_populates="memberships")
+    
+    # Ensure a user has only one membership entry per school
+    __table_args__ = (UniqueConstraint('school_id', 'user_id', name='_school_user_uc'),)
 
 class AccountModel(Base):
     __tablename__ = "accounts"
@@ -26,10 +53,12 @@ class AccountModel(Base):
 
     user = relationship("UserModel", back_populates="account")
 
+# Academic Entities (Always linked to a School)
+
 class SubjectModel(Base):
     __tablename__ = "subjects"
-
     uid = Column(String, primary_key=True)
+    school_id = Column(String, ForeignKey("schools.uid"), nullable=False)
     name = Column(String, nullable=False)
     level = Column(String, nullable=False)
     academic_units = Column(Integer, nullable=False)
@@ -38,27 +67,27 @@ class SubjectModel(Base):
 
 class ClassGroupModel(Base):
     __tablename__ = "class_groups"
-
     uid = Column(String, primary_key=True)
+    school_id = Column(String, ForeignKey("schools.uid"), nullable=False)
     name = Column(String, nullable=False)
     shift = Column(String, nullable=False)
-    student_ids = Column(JSON, default=[])
+    student_ids = Column(JSON, default=[]) # Refs to User IDs
     base_subject_ids = Column(JSON, default=[])
 
 class SubjectOfferingModel(Base):
     __tablename__ = "subject_offerings"
-
     uid = Column(String, primary_key=True)
+    school_id = Column(String, ForeignKey("schools.uid"), nullable=False)
     subject_id = Column(String, ForeignKey("subjects.uid"), nullable=False)
     period = Column(String, nullable=False)
-    teacher_ids = Column(JSON, default=[])
+    teacher_ids = Column(JSON, default=[]) # Refs to User IDs
 
 class EnrollmentModel(Base):
     __tablename__ = "enrollments"
-
     uid = Column(String, primary_key=True)
+    school_id = Column(String, ForeignKey("schools.uid"), nullable=False)
     student_id = Column(String, ForeignKey("users.uid"), nullable=False)
     subject_offering_id = Column(String, ForeignKey("subject_offerings.uid"), nullable=False)
     total_absences = Column(Integer, default=0)
     status = Column(String, nullable=False)
-    grades = Column(JSON, default=[]) # Notas armazenadas como JSONB
+    grades = Column(JSON, default=[])
