@@ -14,15 +14,11 @@ class UserRepository(ABC):
     @abstractmethod
     def get_by_cpf(self, cpf: str) -> Optional[User]:
         pass
-    
+
     @abstractmethod
     def get_by_email(self, email: str) -> Optional[User]:
         pass
 
     @abstractmethod
-    def get_all(self) -> List[User]:
-        pass
-
-    @abstractmethod
-    def delete(self, uid: str) -> None:
+    def list_by_school(self, school_id: str) -> List[User]:
         pass

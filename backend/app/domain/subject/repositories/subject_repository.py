@@ -12,5 +12,5 @@ class SubjectRepository(ABC):
         pass
 
     @abstractmethod
-    def get_all(self) -> List[Subject]:
+    def list_by_school(self, school_id: str) -> List[Subject]:
         pass

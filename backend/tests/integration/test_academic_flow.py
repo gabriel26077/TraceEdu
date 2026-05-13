@@ -7,7 +7,9 @@ from app.infrastructure.persistence.postgresql import (
     SQLAlchemySubjectRepository,
     SQLAlchemySubjectOfferingRepository,
     SQLAlchemyClassGroupRepository,
-    SQLAlchemyEnrollmentRepository
+    SQLAlchemyEnrollmentRepository,
+    SQLAlchemySchoolRepository,
+    SQLAlchemySchoolMemberRepository
 )
 from app.application.user.register_user_use_case import RegisterUserUseCase, RegisterUserInput
 from app.application.subject.register_subject_use_case import RegisterSubjectUseCase, RegisterSubjectInput
@@ -27,34 +29,41 @@ def db_session():
     session.close()
 
 def test_complete_academic_flow(db_session):
-    # 1. Create Student and Teacher
+    # 1. Setup School
+    school_repo = SQLAlchemySchoolRepository(db_session)
+    from app.domain.school.entities.school import School
+    school = School(uid="sc1", name="Test School", coordination_email="test@school.com")
+    school_repo.save(school)
+
+    # 2. Create Student and Teacher
     user_repo = SQLAlchemyUserRepository(db_session)
-    register_user = RegisterUserUseCase(user_repo)
-    student = register_user.execute(RegisterUserInput(name="John Doe", roles=["student"]))
-    teacher = register_user.execute(RegisterUserInput(name="Professor X", roles=["teacher"]))
+    member_repo = SQLAlchemySchoolMemberRepository(db_session)
+    register_user = RegisterUserUseCase(user_repo, member_repo)
+    student = register_user.execute(RegisterUserInput(name="John Doe", school_id=school.uid, roles=["student"]))
+    teacher = register_user.execute(RegisterUserInput(name="Professor X", school_id=school.uid, roles=["teacher"]))
     
-    # 2. Create Subject
+    # 3. Create Subject
     subject_repo = SQLAlchemySubjectRepository(db_session)
     register_subject = RegisterSubjectUseCase(subject_repo)
     subject = register_subject.execute(RegisterSubjectInput(
-        name="Math", level="High School", academic_units=4, offering_type="in-person"
+        school_id=school.uid, name="Math", level="High School", academic_units=4, offering_type="in-person"
     ))
     
-    # 3. Create Subject Offering (With Teacher)
+    # 4. Create Subject Offering (With Teacher)
     offering_repo = SQLAlchemySubjectOfferingRepository(db_session)
     create_offering = CreateOfferingUseCase(offering_repo)
     offering = create_offering.execute(CreateOfferingInput(
-        subject_id=subject.uid, period="2026.1", teacher_ids=[teacher.uid]
+        school_id=school.uid, subject_id=subject.uid, period="2026.1", teacher_ids=[teacher.uid]
     ))
     
-    # 4. Create Class Group with the Offering
+    # 5. Create Class Group with the Offering
     group_repo = SQLAlchemyClassGroupRepository(db_session)
     create_group = CreateGroupUseCase(group_repo)
     group = create_group.execute(CreateGroupInput(
-        name="7A", shift="morning", base_offering_ids=[offering.uid]
+        school_id=school.uid, name="7A", shift="morning", base_offering_ids=[offering.uid]
     ))
     
-    # 5. Enroll Student in Group
+    # 6. Enroll Student in Group
     enroll_repo = SQLAlchemyEnrollmentRepository(db_session)
     enroll_student_in_group = EnrollStudentUseCase(user_repo, group_repo, enroll_repo)
     enroll_student_in_group.execute(EnrollStudentInput(
@@ -77,8 +86,10 @@ def test_complete_academic_flow(db_session):
     report = get_report.execute(group.uid, offering.uid)
     
     # 8. VERIFICATION
-    assert report.class_group_name == "7A"
+    assert report.group_name == "7A"
     assert len(report.students) == 1
     assert report.students[0].student_name == "John Doe"
-    assert report.students[0].is_enrolled is True
+    # In integration test, student should be enrolled
+    from app.domain.enrollment.entities.enrollment import EnrollmentStatus
+    assert report.students[0].enrollment_status == EnrollmentStatus.ENROLLED
     assert report.students[0].grades[0]["value"] == 9.5

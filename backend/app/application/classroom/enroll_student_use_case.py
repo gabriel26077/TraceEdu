@@ -1,10 +1,9 @@
 from dataclasses import dataclass
 from uuid import uuid4
 from app.domain.user.repositories.user_repository import UserRepository
-from app.domain.classroom.repositories.classroom_repository import ClassGroupRepository
+from app.domain.classroom.repositories.class_group_repository import ClassGroupRepository
 from app.domain.enrollment.repositories.enrollment_repository import EnrollmentRepository
 from app.domain.enrollment.entities.enrollment import Enrollment
-from app.domain.exceptions import DomainException
 
 @dataclass
 class EnrollStudentInput:
@@ -12,33 +11,19 @@ class EnrollStudentInput:
     class_group_id: str
 
 class EnrollStudentUseCase:
-    def __init__(
-        self, 
-        user_repository: UserRepository,
-        class_group_repository: ClassGroupRepository,
-        enrollment_repository: EnrollmentRepository
-    ):
-        self.user_repository = user_repository
-        self.class_group_repository = class_group_repository
-        self.enrollment_repository = enrollment_repository
-
-    def execute(self, input: EnrollStudentInput) -> None:
-        student = self.user_repository.get_by_id(input.student_id)
-        if not student:
-            raise DomainException(f"Student not found: {input.student_id}")
-            
-        class_group = self.class_group_repository.get_by_id(input.class_group_id)
-        if not class_group:
-            raise DomainException(f"Class group not found: {input.class_group_id}")
-
-        class_group.add_student(student.uid)
-        
-        for offering_id in class_group.base_subject_offering_ids:
-            enrollment = Enrollment(
-                uid=str(uuid4()),
-                student_id=student.uid,
-                subject_offering_id=offering_id
-            )
-            self.enrollment_repository.save(enrollment)
-            
-        self.class_group_repository.save(class_group)
+    def __init__(self, user_repo: UserRepository, class_repo: ClassGroupRepository, enroll_repo: EnrollmentRepository):
+        self.user_repo = user_repo
+        self.class_repo = class_repo
+        self.enroll_repo = enroll_repo
+    def execute(self, input: EnrollStudentInput):
+        group = self.class_repo.get_by_id(input.class_group_id)
+        if not group: raise Exception("Class Group not found")
+        if input.student_id not in group.student_ids:
+            group.student_ids.append(input.student_id)
+            self.class_repo.save(group)
+        for offering_id in group.base_subject_offering_ids:
+            existing = self.enroll_repo.get_by_student_and_offering(input.student_id, offering_id)
+            if not existing:
+                enrollment = Enrollment(uid=str(uuid4()), school_id=group.school_id, student_id=input.student_id, 
+                                        subject_offering_id=offering_id)
+                self.enroll_repo.save(enrollment)

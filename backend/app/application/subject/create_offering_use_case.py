@@ -1,39 +1,20 @@
 from dataclasses import dataclass, field
 from typing import List
 from uuid import uuid4
-from app.domain.classroom.entities.subject_offering import SubjectOffering
-from app.domain.subject.value_objects import AcademicPeriod
-from app.domain.classroom.repositories.classroom_repository import SubjectOfferingRepository
-from app.domain.exceptions import DomainException
+from app.domain.academic.entities.subject_offering import SubjectOffering
+from app.domain.academic.repositories.subject_offering_repository import SubjectOfferingRepository
 
 @dataclass
 class CreateOfferingInput:
+    school_id: str
     subject_id: str
     period: str
-    teacher_ids: List[str]
-
-@dataclass
-class OfferingOutput:
-    uid: str
-    subject_id: str
-    period: str
-    teacher_ids: List[str]
+    teacher_ids: List[str] = field(default_factory=list)
 
 class CreateOfferingUseCase:
-    def __init__(self, offering_repository: SubjectOfferingRepository):
-        self.offering_repository = offering_repository
-
-    def execute(self, input: CreateOfferingInput) -> OfferingOutput:
-        offering = SubjectOffering(
-            uid=str(uuid4()),
-            subject_id=input.subject_id,
-            period=AcademicPeriod(input.period),
-            teacher_ids=input.teacher_ids
-        )
-        self.offering_repository.save(offering)
-        return OfferingOutput(
-            uid=offering.uid,
-            subject_id=offering.subject_id,
-            period=offering.period.value,
-            teacher_ids=offering.teacher_ids
-        )
+    def __init__(self, repo: SubjectOfferingRepository): self.repo = repo
+    def execute(self, input: CreateOfferingInput):
+        offering = SubjectOffering(uid=str(uuid4()), school_id=input.school_id, subject_id=input.subject_id, 
+                                   period=input.period, teacher_ids=input.teacher_ids)
+        self.repo.save(offering)
+        return offering

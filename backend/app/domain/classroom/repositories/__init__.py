@@ -1,1 +1,1 @@
-from .classroom_repository import ClassGroupRepository, SubjectOfferingRepository
+from .class_group_repository import ClassGroupRepository

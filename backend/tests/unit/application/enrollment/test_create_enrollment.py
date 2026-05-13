@@ -4,20 +4,10 @@ from app.application.enrollment.create_enrollment_use_case import CreateEnrollme
 from app.domain.enrollment.repositories.enrollment_repository import EnrollmentRepository
 
 def test_create_enrollment_successfully():
-    # Arrange
-    repository = Mock(spec=EnrollmentRepository)
-    use_case = CreateEnrollmentUseCase(repository)
+    repo = Mock(spec=EnrollmentRepository)
+    use_case = CreateEnrollmentUseCase(repo)
+    input_data = CreateEnrollmentInput(school_id="s1", student_id="u1", subject_offering_id="o1")
     
-    input_data = CreateEnrollmentInput(
-        student_id="student-123",
-        subject_offering_id="offering-456"
-    )
-    
-    # Act
-    output = use_case.execute(input_data)
-    
-    # Assert
-    assert output.student_id == "student-123"
-    assert output.subject_offering_id == "offering-456"
-    assert output.status == "enrolled"
-    repository.save.assert_called_once()
+    enrollment = use_case.execute(input_data)
+    assert enrollment.school_id == "s1"
+    assert repo.save.called

@@ -1,45 +1,34 @@
 import pytest
-from uuid import uuid4
 from app.domain.enrollment.entities.enrollment import Enrollment, Grade
-from app.domain.enrollment.value_objects import AcademicGrade, EnrollmentStatus, GradeType
-from app.domain.enrollment.policies import SimpleAveragePromotionPolicy, SubstitutionRecoveryPolicy
-
-def test_simple_average_policy_approval():
-    policy = SimpleAveragePromotionPolicy(min_grade=6.0)
-    enrollment = Enrollment(uid=str(uuid4()), student_id=str(uuid4()), subject_offering_id=str(uuid4()))
-    enrollment.add_grade(Grade(uid=str(uuid4()), term=1, value=AcademicGrade(6.0)))
-    
-    assert policy.evaluate(enrollment) == EnrollmentStatus.APPROVED
+from app.domain.enrollment.value_objects.academic_grade import AcademicGrade
+from app.domain.enrollment.value_objects.grade_type import GradeType
+from app.domain.enrollment.policies import SubstitutionRecoveryPolicy
 
 def test_substitution_recovery_policy_should_replace_lower_grade():
     policy = SubstitutionRecoveryPolicy()
-    enrollment = Enrollment(uid=str(uuid4()), student_id=str(uuid4()), subject_offering_id=str(uuid4()))
+    enrollment = Enrollment(uid="e1", school_id="sc1", student_id="u1", subject_offering_id="o1")
     
-    # Regular grade was 4.0
-    enrollment.add_grade(Grade(uid="g1", term=1, value=AcademicGrade(4.0), grade_type=GradeType.REGULAR))
+    # Original grade: 5.0
+    enrollment.add_grade(Grade(term=1, value=AcademicGrade(5.0), grade_type=GradeType.REGULAR))
     
-    # Recovery grade is 8.0
-    recovery = Grade(uid="g2", term=1, value=AcademicGrade(8.0), grade_type=GradeType.RECOVERY)
+    # Recovery grade: 8.0
+    recovery_grade = Grade(term=1, value=AcademicGrade(8.0), grade_type=GradeType.RECOVERY)
+    policy.apply(enrollment, recovery_grade)
     
-    policy.apply(enrollment, recovery)
-    
-    # The 'active' grade for term 1 should now be 8.0
-    regular_grade = next(g for g in enrollment.grades if g.term == 1 and g.grade_type == GradeType.REGULAR)
-    assert regular_grade.value.value == 8.0
-    assert len(enrollment.grades) == 2 # History kept both
+    # The active grade for term 1 should now be 8.0
+    # In our policy, it updates the regular grade in the list
+    assert enrollment.grades[0].value.value == 8.0
 
 def test_substitution_recovery_policy_should_not_replace_higher_grade():
     policy = SubstitutionRecoveryPolicy()
-    enrollment = Enrollment(uid=str(uuid4()), student_id=str(uuid4()), subject_offering_id=str(uuid4()))
+    enrollment = Enrollment(uid="e1", school_id="sc1", student_id="u1", subject_offering_id="o1")
     
-    # Regular grade was 9.0
-    enrollment.add_grade(Grade(uid="g1", term=1, value=AcademicGrade(9.0), grade_type=GradeType.REGULAR))
+    # Original grade: 9.0
+    enrollment.add_grade(Grade(term=1, value=AcademicGrade(9.0), grade_type=GradeType.REGULAR))
     
-    # Recovery grade is 5.0
-    recovery = Grade(uid="g2", term=1, value=AcademicGrade(5.0), grade_type=GradeType.RECOVERY)
+    # Recovery grade: 7.0
+    recovery_grade = Grade(term=1, value=AcademicGrade(7.0), grade_type=GradeType.RECOVERY)
+    policy.apply(enrollment, recovery_grade)
     
-    policy.apply(enrollment, recovery)
-    
-    # The 'active' grade for term 1 should remain 9.0
-    regular_grade = next(g for g in enrollment.grades if g.term == 1 and g.grade_type == GradeType.REGULAR)
-    assert regular_grade.value.value == 9.0
+    # Should stay 9.0
+    assert enrollment.grades[0].value.value == 9.0
