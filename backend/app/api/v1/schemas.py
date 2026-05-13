@@ -41,7 +41,7 @@ class SubjectResponse(BaseModel):
 class SubjectOfferingCreate(BaseModel):
     subject_id: str
     period: str
-    teacher_ids: List[str]
+    teacher_ids: List[str] = []
 
 class SubjectOfferingResponse(BaseModel):
     uid: str

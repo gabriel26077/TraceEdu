@@ -105,8 +105,8 @@ export default function OfferingsPage() {
   const handleCreateOffering = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!currentSchool) return
-    if (!formData.subject_id || !formData.period || formData.teacher_ids.length === 0) {
-      alert("Please fill all required fields and select at least one teacher.")
+    if (!formData.subject_id || !formData.period) {
+      alert("Please fill all required fields (Subject and Period).")
       return
     }
 
@@ -322,7 +322,7 @@ export default function OfferingsPage() {
               {/* Right Column: Teacher Assignment */}
               <div className="w-full md:w-1/2 p-8 space-y-4 flex flex-col">
                 <h4 className="text-xs font-bold text-indigo-500 uppercase tracking-widest flex items-center gap-2">
-                  <User size={14} /> Assign Teachers
+                  <User size={14} /> Assign Teachers <span className="text-[10px] text-zinc-600 lowercase font-normal italic">(optional)</span>
                 </h4>
                 
                 <div className="flex-1 overflow-y-auto space-y-2 max-h-[300px] pr-2 custom-scrollbar">
