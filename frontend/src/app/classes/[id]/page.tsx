@@ -108,7 +108,15 @@ export default function ClassDetailPage() {
     const isAlreadyLinked = group?.offering_ids.includes(o.uid)
     if (isAlreadyLinked) return false
     
-    // Safety check: Filter by Level if group is regular
+    // PERMISSIVE LOGIC FOR 'LIVRE':
+    // 1. If subject is 'livre', it can go anywhere.
+    // 2. If class is 'livre', it can take any subject.
+    if ((o as any).subject_level === "livre" || group?.level === "livre") {
+      return true
+    }
+
+    // STRICT LOGIC FOR REGULAR:
+    // Filter by Level if group is regular
     if (group?.is_regular && group.level) {
       return (o as any).subject_level === group.level
     }

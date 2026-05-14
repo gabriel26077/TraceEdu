@@ -356,20 +356,23 @@ export default function ClassesPage() {
                           <option value="fundamental_1">Fundamental 1</option>
                           <option value="fundamental_2">Fundamental 2</option>
                           <option value="ensino_medio">Ensino Médio</option>
+                          <option value="livre">Livre / Aberto</option>
                         </select>
                       </div>
-                      <div>
-                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5 block ml-1">Year / Grade</label>
-                        <select 
-                          className="premium-input bg-zinc-950 appearance-none text-xs"
-                          value={formData.grade}
-                          onChange={e => setFormData({...formData, grade: e.target.value})}
-                        >
-                          {formData.level === "fundamental_1" && ["1", "2", "3", "4", "5"].map(g => <option key={g} value={g}>{g}º Ano</option>)}
-                          {formData.level === "fundamental_2" && ["6", "7", "8", "9"].map(g => <option key={g} value={g}>{g}º Ano</option>)}
-                          {formData.level === "ensino_medio" && ["I", "II", "III", "IV"].map(g => <option key={g} value={g}>{g} Série</option>)}
-                        </select>
-                      </div>
+                      {formData.level !== "livre" && (
+                        <div>
+                          <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5 block ml-1">Year / Grade</label>
+                          <select 
+                            className="premium-input bg-zinc-950 appearance-none text-xs"
+                            value={formData.grade}
+                            onChange={e => setFormData({...formData, grade: e.target.value})}
+                          >
+                            {formData.level === "fundamental_1" && ["1", "2", "3", "4", "5"].map(g => <option key={g} value={g}>{g}º Ano</option>)}
+                            {formData.level === "fundamental_2" && ["6", "7", "8", "9"].map(g => <option key={g} value={g}>{g}º Ano</option>)}
+                            {formData.level === "ensino_medio" && ["I", "II", "III", "IV"].map(g => <option key={g} value={g}>{g} Série</option>)}
+                          </select>
+                        </div>
+                      )}
                     </div>
                   )}
 

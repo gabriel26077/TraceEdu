@@ -46,7 +46,8 @@ interface GlobalSubject {
 const LEVEL_LABELS: { [key: string]: string } = {
   fundamental_1: "Ensino Fundamental 1",
   fundamental_2: "Ensino Fundamental 2",
-  ensino_medio: "Ensino Médio"
+  ensino_medio: "Ensino Médio",
+  livre: "Livre / Aberto"
 }
 
 export default function SubjectsPage() {
@@ -71,7 +72,7 @@ export default function SubjectsPage() {
   })
 
   // Tree UI (Main Page)
-  const [expandedLevels, setExpandedLevels] = useState<string[]>(["fundamental_1", "fundamental_2", "ensino_medio"])
+  const [expandedLevels, setExpandedLevels] = useState<string[]>(["fundamental_1", "fundamental_2", "ensino_medio", "livre"])
   const [expandedGrades, setExpandedGrades] = useState<string[]>([])
 
   // Tree UI (Import Modal)
@@ -257,7 +258,8 @@ export default function SubjectsPage() {
                   {(
                     level === "fundamental_1" ? ["1", "2", "3", "4", "5"] :
                     level === "fundamental_2" ? ["6", "7", "8", "9"] :
-                    ["I", "II", "III", "IV"]
+                    level === "ensino_medio" ? ["I", "II", "III", "IV"] :
+                    ["ALL"]
                   ).map(grade => {
                     const subjects = grades[grade] || []
                     const gradeKey = `${level}-${grade}`
@@ -547,15 +549,17 @@ export default function SubjectsPage() {
                       {Object.entries(LEVEL_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                     </select>
                   </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase mb-1.5 block">Grade / Year</label>
-                    <input 
-                      required
-                      className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500/50 transition-all"
-                      value={formData.grade}
-                      onChange={e => setFormData({...formData, grade: e.target.value})}
-                    />
-                  </div>
+                  {formData.level !== "livre" && (
+                    <div className="animate-in fade-in zoom-in-95 duration-300">
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase mb-1.5 block">Grade / Year</label>
+                      <input 
+                        required
+                        className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500/50 transition-all"
+                        value={formData.grade}
+                        onChange={e => setFormData({...formData, grade: e.target.value})}
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>

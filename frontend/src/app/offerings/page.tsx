@@ -132,9 +132,16 @@ export default function OfferingsPage() {
   }, [searchParams])
 
   const filteredSubjects = subjects.filter(s => {
-    if (targetClass?.is_regular && targetClass.level) {
-      return s.level === targetClass.level
+    if (!targetClass) return true // No target class, show all (for generic creation)
+    
+    // If target class is 'livre', it can take any subject
+    if (targetClass.level === "livre") return true
+
+    // If target class is regular, it can take same-level subjects OR 'livre' subjects
+    if (targetClass.is_regular && targetClass.level) {
+      return s.level === targetClass.level || s.level === "livre"
     }
+    
     return true
   })
 
