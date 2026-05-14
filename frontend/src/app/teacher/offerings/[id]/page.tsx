@@ -26,6 +26,8 @@ interface Student {
 interface Subject {
   uid: string
   name: string
+  academic_units: number
+  assessments_per_unit: number
 }
 
 interface Offering {
@@ -46,6 +48,7 @@ export default function TeacherOfferingPage() {
   const [teachers, setTeachers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<"members" | "grades" | "stats">("members")
+  const [activeUnitTab, setActiveUnitTab] = useState(1)
 
   useEffect(() => {
     async function fetchData() {
@@ -237,12 +240,70 @@ export default function TeacherOfferingPage() {
         )}
 
         {activeTab === "grades" && (
-          <div className="glass-card p-20 text-center space-y-4 border-dashed border-zinc-800">
-            <FileText size={48} className="mx-auto text-zinc-800" />
-            <div className="max-w-xs mx-auto">
-              <h3 className="text-zinc-200 font-bold text-lg">Grade posting coming soon</h3>
-              <p className="text-zinc-500 text-sm mt-1">We are finalizing the grade entry interface. Stay tuned!</p>
-            </div>
+          <div className="space-y-6">
+             {/* Unit Tabs */}
+             <div className="flex gap-4 border-b border-zinc-900 pb-px overflow-x-auto">
+                {Array.from({ length: subject?.academic_units || 0 }, (_, i) => i + 1).map(unit => (
+                  <button
+                    key={unit}
+                    onClick={() => setActiveUnitTab(unit)}
+                    className={cn(
+                      "pb-4 text-sm font-bold transition-all relative px-2 whitespace-nowrap",
+                      activeUnitTab === unit 
+                        ? "text-emerald-500" 
+                        : "text-zinc-600 hover:text-zinc-400"
+                    )}
+                  >
+                    Unidade {unit}
+                    {activeUnitTab === unit && (
+                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                    )}
+                  </button>
+                ))}
+             </div>
+
+             {/* Grades Table */}
+             <div className="bg-zinc-950/40 border border-zinc-900 rounded-3xl overflow-hidden shadow-2xl overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                   <thead>
+                      <tr className="border-b border-zinc-900 bg-zinc-950/60">
+                         <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest sticky left-0 bg-zinc-950 z-10 min-w-[200px]">Estudante</th>
+                         {Array.from({ length: subject?.assessments_per_unit || 0 }, (_, i) => i + 1).map(av => (
+                           <th key={av} className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-center">AV{av}</th>
+                         ))}
+                         <th className="px-6 py-4 text-[10px] font-black text-emerald-500 uppercase tracking-widest text-right">Média Unidade</th>
+                      </tr>
+                   </thead>
+                   <tbody className="divide-y divide-zinc-900">
+                      {students.map(student => (
+                        <tr key={student.uid} className="hover:bg-zinc-900/40 transition-colors group">
+                           <td className="px-6 py-4 sticky left-0 bg-zinc-950/40 backdrop-blur-md group-hover:bg-zinc-900/60 transition-colors z-10">
+                              <div className="flex items-center gap-3">
+                                 <div className="w-7 h-7 bg-zinc-900 text-zinc-500 rounded-lg flex items-center justify-center text-[10px] font-bold border border-zinc-800">
+                                    {student.name.charAt(0)}
+                                 </div>
+                                 <span className="text-xs font-bold text-zinc-300 group-hover:text-white transition-colors">{student.name}</span>
+                              </div>
+                           </td>
+                           {Array.from({ length: subject?.assessments_per_unit || 0 }, (_, i) => i + 1).map(av => (
+                             <td key={av} className="px-6 py-4">
+                                <div className="flex justify-center">
+                                  <input 
+                                    type="number" 
+                                    placeholder="--" 
+                                    className="w-16 h-10 bg-zinc-900/50 border border-zinc-800 rounded-xl text-center text-sm font-bold text-white focus:outline-none focus:border-emerald-500/50 transition-all placeholder:text-zinc-800"
+                                  />
+                                </div>
+                             </td>
+                           ))}
+                           <td className="px-6 py-4 text-right">
+                              <span className="text-sm font-black text-emerald-400 bg-emerald-500/5 px-3 py-1.5 rounded-lg border border-emerald-500/10">--</span>
+                           </td>
+                        </tr>
+                      ))}
+                   </tbody>
+                </table>
+             </div>
           </div>
         )}
 
