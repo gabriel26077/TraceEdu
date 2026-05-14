@@ -574,7 +574,7 @@ def enroll_student_in_group(school_id: str, group_id: str, request: EnrollStuden
         )
         use_case.execute(use_case_input)
         db.commit()
-        return None
+        return class_repo.get_by_id(group_id)
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
