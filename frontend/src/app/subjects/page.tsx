@@ -73,7 +73,7 @@ export default function SubjectsPage() {
 
   // Tree UI (Main Page)
   const [expandedLevels, setExpandedLevels] = useState<string[]>(["fundamental_1", "fundamental_2", "ensino_medio", "livre"])
-  const [expandedGrades, setExpandedGrades] = useState<string[]>([])
+  const [expandedGrades, setExpandedGrades] = useState<string[]>(["livre-"])
 
   // Tree UI (Import Modal)
   const [importExpandedLevels, setImportExpandedLevels] = useState<string[]>(["fundamental_1", "fundamental_2", "ensino_medio"])
@@ -84,8 +84,18 @@ export default function SubjectsPage() {
     if (!currentSchool) return
     setLoading(true)
     try {
-      const data = await api.get<GroupedSubjects>(`/schools/${currentSchool.uid}/subjects`)
-      setGroupedSubjects(data)
+      const data = await api.get<Subject[]>(`/schools/${currentSchool.uid}/subjects`)
+      
+      // Manual grouping
+      const grouped: GroupedSubjects = {}
+      data.forEach(s => {
+        const gradeKey = s.grade || "" // Handle null/undefined
+        if (!grouped[s.level]) grouped[s.level] = {}
+        if (!grouped[s.level][gradeKey]) grouped[s.level][gradeKey] = []
+        grouped[s.level][gradeKey].push(s)
+      })
+      
+      setGroupedSubjects(grouped)
     } catch (err) {
       console.error(err)
     } finally {
@@ -265,7 +275,7 @@ export default function SubjectsPage() {
                     level === "fundamental_1" ? ["1", "2", "3", "4", "5"] :
                     level === "fundamental_2" ? ["6", "7", "8", "9"] :
                     level === "ensino_medio" ? ["I", "II", "III", "IV"] :
-                    ["ALL"]
+                    [""]
                   ).map(grade => {
                     const subjects = grades[grade] || []
                     const gradeKey = `${level}-${grade}`
@@ -277,7 +287,9 @@ export default function SubjectsPage() {
                             className="flex items-center gap-3 text-left"
                           >
                             {expandedGrades.includes(gradeKey) ? <ChevronDown size={16} className="text-zinc-600" /> : <ChevronRight size={16} className="text-zinc-600" />}
-                            <span className="text-sm font-bold text-zinc-400">{grade}º Ano / Série</span>
+                            <span className="text-sm font-bold text-zinc-400">
+                              {grade === "" ? "General Subjects / Open Enrollment" : `${grade}º Ano / Série`}
+                            </span>
                             <span className="text-[10px] bg-zinc-800 text-zinc-500 px-2 py-0.5 rounded-full">{subjects.length} subjects</span>
                           </button>
                           
