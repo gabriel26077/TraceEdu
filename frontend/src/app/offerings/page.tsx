@@ -51,9 +51,15 @@ interface ClassGroup {
 }
 
 export default function OfferingsPage() {
-  const { currentSchool } = useSchool()
-  const searchParams = useSearchParams()
+  const { currentSchool, currentRole, isSuperAdmin, isLoading } = useSchool()
   const router = useRouter()
+
+  useEffect(() => {
+    if (!isLoading && currentRole !== "admin" && !isSuperAdmin) {
+      router.push("/")
+    }
+  }, [isLoading, currentRole, isSuperAdmin, router])
+  const searchParams = useSearchParams()
   const [offerings, setOfferings] = useState<Offering[]>([])
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [teachers, setTeachers] = useState<User[]>([])

@@ -12,6 +12,7 @@ interface School {
   name: string
   coordination_email: string
   status: string
+  role?: string
 }
 
 export default function SchoolsPage() {
@@ -64,7 +65,9 @@ export default function SchoolsPage() {
       alert("This school is archived. Please activate it first to access its dashboard.")
       return
     }
-    setSchool(school, "admin")
+    // USE THE REAL ROLE FROM BACKEND, DEFAULT TO 'USER' FOR SAFETY
+    const userRole = isSuperAdmin ? "admin" : (school.role || "teacher")
+    setSchool({ uid: school.uid, name: school.name }, userRole as any)
     router.push("/")
   }
 

@@ -67,7 +67,7 @@ from .schemas import (
 
 # Auth & Dependencies
 from .endpoints import auth
-from .dependencies import get_current_user, verify_school_access, verify_platform_admin
+from .dependencies import get_current_user, verify_school_access, verify_platform_admin, verify_school_admin
 
 router = APIRouter()
 
@@ -103,7 +103,17 @@ def register_school(data: SchoolCreate, db: Session = Depends(get_db), current_u
 def list_schools(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     repo = SQLAlchemySchoolRepository(db)
     use_case = ListSchoolsUseCase(repo, db)
-    return use_case.execute(current_user)
+    results = use_case.execute(current_user)
+    
+    return [
+        {
+            "uid": r["school"].uid,
+            "name": r["school"].name,
+            "coordination_email": r["school"].coordination_email,
+            "status": r["school"].status,
+            "role": r["role"]
+        } for r in results
+    ]
 
 @router.patch("/schools/{school_id}/archive", status_code=204)
 def archive_school(school_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
@@ -142,7 +152,7 @@ def delete_platform_user(user_id: str, db: Session = Depends(get_db), current_us
 # --- SCHOOL-SPECIFIC ROUTES ---
 
 @router.post("/schools/{school_id}/users", response_model=UserResponse, status_code=201)
-def register_user(school_id: str, user_data: UserCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_access)):
+def register_user(school_id: str, user_data: UserCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_admin)):
     try:
         repository = SQLAlchemyUserRepository(db)
         member_repo = SQLAlchemySchoolMemberRepository(db)
@@ -176,7 +186,7 @@ def register_user(school_id: str, user_data: UserCreate, db: Session = Depends(g
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/schools/{school_id}/users", response_model=List[UserResponse])
-def list_school_users(school_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_access)):
+def list_school_users(school_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_admin)):
     repository = SQLAlchemyUserRepository(db)
     use_case = ListUsersUseCase(repository)
     users = use_case.execute(school_id)
@@ -298,7 +308,7 @@ def import_subjects(data: dict, db: Session = Depends(get_db), current_user = De
 
 
 @router.post("/schools/{school_id}/subjects", response_model=SubjectResponse, status_code=201)
-def register_subject(school_id: str, subject_data: SubjectCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_access)):
+def register_subject(school_id: str, subject_data: SubjectCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_admin)):
     try:
         repository = SQLAlchemySubjectRepository(db)
         use_case = RegisterSubjectUseCase(repository)
@@ -353,7 +363,7 @@ def list_subjects(school_id: str, db: Session = Depends(get_db), current_user = 
     return use_case.execute(school_id)
 
 @router.post("/schools/{school_id}/subject-offerings", response_model=SubjectOfferingResponse, status_code=201)
-def create_subject_offering(school_id: str, offering_data: SubjectOfferingCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_access)):
+def create_subject_offering(school_id: str, offering_data: SubjectOfferingCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_admin)):
     try:
         repository = SQLAlchemySubjectOfferingRepository(db)
         group_repo = SQLAlchemyClassGroupRepository(db)
@@ -429,7 +439,7 @@ def post_grade(school_id: str, enrollment_id: str, grade_data: GradePostRequest,
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/schools/{school_id}/class-groups", response_model=ClassGroupResponse, status_code=201)
-def create_class_group(school_id: str, group_data: ClassGroupCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_access)):
+def create_class_group(school_id: str, group_data: ClassGroupCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_admin)):
     try:
         repository = SQLAlchemyClassGroupRepository(db)
         use_case = CreateGroupUseCase(repository)
@@ -492,7 +502,9 @@ def delete_class_group(uid: str, db: Session = Depends(get_db), current_user = D
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
-def enroll_student_in_group(school_id: str, group_id: str, request: EnrollStudentInGroupRequest, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_access)):
+
+@router.post("/schools/{school_id}/class-groups/{group_id}/students", response_model=ClassGroupResponse)
+def enroll_student_in_group(school_id: str, group_id: str, request: EnrollStudentInGroupRequest, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_admin)):
     try:
         user_repo = SQLAlchemyUserRepository(db)
         class_repo = SQLAlchemyClassGroupRepository(db)

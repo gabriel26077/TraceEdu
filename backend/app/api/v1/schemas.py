@@ -133,6 +133,7 @@ class SchoolResponse(BaseModel):
     name: str
     coordination_email: str
     status: str
+    role: Optional[str] = None
 
     class Config:
         from_attributes = True

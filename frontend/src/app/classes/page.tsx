@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { api } from "@/lib/api"
+import { useRouter } from "next/navigation"
 import { 
   GraduationCap, 
   Plus, 
@@ -47,7 +48,14 @@ interface ClassGroup {
 }
 
 export default function ClassesPage() {
-  const { currentSchool } = useSchool()
+  const { currentSchool, currentRole, isSuperAdmin, isLoading } = useSchool()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!isLoading && currentRole !== "admin" && !isSuperAdmin) {
+      router.push("/")
+    }
+  }, [isLoading, currentRole, isSuperAdmin, router])
   const [classes, setClasses] = useState<ClassGroup[]>([])
   const [schoolSubjects, setSchoolSubjects] = useState<Subject[]>([])
   const [offerings, setOfferings] = useState<any[]>([])

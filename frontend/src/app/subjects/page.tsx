@@ -16,6 +16,7 @@ import {
   Package
 } from "lucide-react"
 import { useSchool } from "@/contexts/SchoolContext"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 
 interface Subject {
@@ -51,6 +52,15 @@ const LEVEL_LABELS: { [key: string]: string } = {
 }
 
 export default function SubjectsPage() {
+  const { currentSchool, currentRole, isSuperAdmin, isLoading } = useSchool()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!isLoading && currentRole !== "admin" && !isSuperAdmin) {
+      router.push("/")
+    }
+  }, [isLoading, currentRole, isSuperAdmin, router])
+
   const [groupedSubjects, setGroupedSubjects] = useState<GroupedSubjects>({})
   const [globalSubjects, setGlobalSubjects] = useState<GlobalSubject[]>([])
   const [loading, setLoading] = useState(true)
@@ -78,7 +88,6 @@ export default function SubjectsPage() {
   // Tree UI (Import Modal)
   const [importExpandedLevels, setImportExpandedLevels] = useState<string[]>(["fundamental_1", "fundamental_2", "ensino_medio"])
 
-  const { currentSchool } = useSchool()
 
   async function fetchSchoolSubjects() {
     if (!currentSchool) return

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { api } from "@/lib/api"
 import { Users, Plus, Mail, Shield, Search, AlertCircle, X, User as UserIcon, GraduationCap } from "lucide-react"
 import { useSchool } from "@/contexts/SchoolContext"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 
 interface User {
@@ -21,7 +22,14 @@ export default function StudentsPage() {
     name: "",
     roles: ["student"]
   })
-  const { currentSchool } = useSchool()
+  const { currentSchool, currentRole, isSuperAdmin, isLoading } = useSchool()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!isLoading && currentRole !== "admin" && !isSuperAdmin) {
+      router.push("/")
+    }
+  }, [isLoading, currentRole, isSuperAdmin, router])
 
   async function fetchStudents() {
     if (!currentSchool) return
