@@ -295,25 +295,6 @@ def import_subjects(data: dict, db: Session = Depends(get_db), current_user = De
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/schools/{school_id}/subjects")
-def list_school_subjects(school_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    repo = SQLAlchemySubjectRepository(db)
-    subjects = repo.list_by_school(school_id)
-    
-    # Return grouped by level and grade for the frontend tree view
-    # Format: { "fundamental_1": { "1": [...], "2": [...] }, ... }
-    grouped = {}
-    for s in subjects:
-        if s.level not in grouped: grouped[s.level] = {}
-        if s.grade not in grouped[s.level]: grouped[s.level][s.grade] = []
-        grouped[s.level][s.grade].append({
-            "uid": s.uid,
-            "name": s.name,
-            "description": s.description,
-            "academic_units": s.academic_units
-        })
-        
-    return grouped
 
 @router.post("/schools/{school_id}/subjects", response_model=SubjectResponse, status_code=201)
 def register_subject(school_id: str, subject_data: SubjectCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_access)):
