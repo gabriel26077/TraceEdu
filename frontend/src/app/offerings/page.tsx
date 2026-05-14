@@ -145,8 +145,13 @@ export default function OfferingsPage() {
       return
     }
 
+    const payload = {
+      ...formData,
+      class_group_id: formData.class_group_id || null
+    }
+
     try {
-      await api.post(`/schools/${currentSchool.uid}/subject-offerings`, formData)
+      await api.post(`/schools/${currentSchool.uid}/subject-offerings`, payload)
       setIsModalOpen(false)
       setFormData({ subject_id: "", period: "2024.1", class_group_id: "", teacher_ids: [] })
       fetchData()

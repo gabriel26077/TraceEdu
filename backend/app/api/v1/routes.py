@@ -357,11 +357,15 @@ def create_subject_offering(school_id: str, offering_data: SubjectOfferingCreate
         repository = SQLAlchemySubjectOfferingRepository(db)
         group_repo = SQLAlchemyClassGroupRepository(db)
         use_case = CreateOfferingUseCase(repository, group_repo)
+        
+        # Sanitize class_group_id: empty string should be None
+        class_group_id = offering_data.class_group_id if offering_data.class_group_id else None
+        
         use_case_input = CreateOfferingInput(
             school_id=school_id, 
             subject_id=offering_data.subject_id,
             period=offering_data.period, 
-            class_group_id=offering_data.class_group_id,
+            class_group_id=class_group_id,
             teacher_ids=offering_data.teacher_ids
         )
         result = use_case.execute(use_case_input)
