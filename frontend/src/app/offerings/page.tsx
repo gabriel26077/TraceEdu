@@ -107,12 +107,15 @@ export default function OfferingsPage() {
 
   useEffect(() => {
     const classId = searchParams.get("class_id")
+    const subjectId = searchParams.get("subject_id")
+    
     if (classId) {
       api.get<any>(`/class-groups/${classId}`).then(group => {
         setTargetClass(group)
         setFormData(prev => ({ 
           ...prev, 
           class_group_id: classId,
+          subject_id: subjectId || prev.subject_id,
           period: group.period 
         }))
         setIsModalOpen(true)

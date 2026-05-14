@@ -59,6 +59,7 @@ export default function ClassDetailPage() {
   const [group, setGroup] = useState<ClassGroup | null>(null)
   const [offerings, setOfferings] = useState<SubjectOffering[]>([])
   const [allSchoolOfferings, setAllSchoolOfferings] = useState<SubjectOffering[]>([])
+  const [allSchoolSubjects, setAllSchoolSubjects] = useState<any[]>([])
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
@@ -76,6 +77,7 @@ export default function ClassDetailPage() {
       ])
 
       setGroup(groupData)
+      setAllSchoolSubjects(allSubjects)
       
       const enrichedAll = allOfferings.map(o => {
         const sub = allSubjects.find(s => s.uid === o.subject_id)
@@ -358,6 +360,48 @@ export default function ClassDetailPage() {
                     </div>
                   ))}
                 </div>
+
+                {/* Pending Curriculum Requirements */}
+                {group.is_regular && (() => {
+                  const coveredIds = offerings.map(o => o.subject_id)
+                  const pending = allSchoolSubjects.filter(s => 
+                    group.required_subject_ids.includes(s.uid) && 
+                    !coveredIds.includes(s.uid)
+                  )
+                  
+                  if (pending.length === 0) return null
+                  
+                  return (
+                    <div className="mt-12 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                      <div className="flex items-center gap-2 px-2">
+                        <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
+                        <h4 className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Pending Curriculum Requirements</h4>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {pending.map(subject => (
+                          <div key={subject.uid} className="bg-zinc-950/40 border border-dashed border-zinc-800 p-5 rounded-2xl flex justify-between items-center group hover:border-amber-500/30 transition-all">
+                            <div className="flex items-center gap-4">
+                              <div className="w-10 h-10 bg-zinc-900 rounded-xl flex items-center justify-center border border-zinc-800 text-zinc-600 group-hover:text-amber-500 transition-colors">
+                                <BookOpen size={18} />
+                              </div>
+                              <div>
+                                <h5 className="font-bold text-zinc-400 group-hover:text-zinc-200 transition-colors">{subject.name}</h5>
+                                <p className="text-[9px] text-zinc-600 font-bold uppercase tracking-wider">No active offering</p>
+                              </div>
+                            </div>
+                            <Link 
+                              href={`/offerings?class_id=${group.uid}&subject_id=${subject.uid}`}
+                              className="px-4 py-2 bg-zinc-900 border border-zinc-800 text-[9px] font-black text-zinc-500 hover:text-white hover:border-zinc-700 transition-all rounded-lg uppercase tracking-widest"
+                            >
+                              Create Offering
+                            </Link>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
             ) : (
               <div className="space-y-3">
