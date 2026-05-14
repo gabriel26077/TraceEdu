@@ -77,6 +77,7 @@ export default function SubjectsPage() {
     level: "fundamental_1",
     grade: "1",
     academic_units: 3,
+    assessments_per_unit: 3,
     offering_type: "standard",
     description: ""
   })
@@ -181,6 +182,7 @@ export default function SubjectsPage() {
       level: level || "fundamental_1",
       grade: grade || "1",
       academic_units: 3,
+      assessments_per_unit: 3,
       offering_type: "standard",
       description: ""
     })
@@ -194,6 +196,7 @@ export default function SubjectsPage() {
       level: subject.level,
       grade: subject.grade,
       academic_units: subject.academic_units,
+      assessments_per_unit: (subject as any).assessments_per_unit || 3,
       offering_type: "standard",
       description: subject.description || ""
     })
@@ -596,15 +599,28 @@ export default function SubjectsPage() {
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase mb-1.5 block">Units</label>
-                    <input 
-                      type="number"
-                      className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500/50 transition-all"
-                      value={formData.academic_units}
-                      onChange={e => setFormData({...formData, academic_units: parseInt(e.target.value)})}
-                    />
-                  </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Unidades</label>
+                      <input 
+                        type="number"
+                        min="1"
+                        max="6"
+                        value={formData.academic_units}
+                        onChange={(e) => setFormData({...formData, academic_units: parseInt(e.target.value)})}
+                        className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500/50 transition-colors"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Notas/Unidade</label>
+                      <input 
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={formData.assessments_per_unit}
+                        onChange={(e) => setFormData({...formData, assessments_per_unit: parseInt(e.target.value)})}
+                        className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500/50 transition-colors"
+                      />
+                    </div>
                   <div>
                     <label className="text-[10px] font-bold text-zinc-500 uppercase mb-1.5 block">Type</label>
                     <select 
