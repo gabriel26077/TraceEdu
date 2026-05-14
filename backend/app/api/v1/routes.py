@@ -408,6 +408,42 @@ def get_subject_offering(school_id: str, uid: str, db: Session = Depends(get_db)
         raise HTTPException(status_code=404, detail="Subject offering not found")
     return offering
 
+@router.get("/schools/{school_id}/subject-offerings/{uid}/students", response_model=List[UserResponse])
+def list_offering_students(school_id: str, uid: str, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_access)):
+    # 1. Get the offering
+    off_repo = SQLAlchemySubjectOfferingRepository(db)
+    offering = off_repo.get_by_id(uid)
+    if not offering or offering.school_id != school_id:
+        raise HTTPException(status_code=404, detail="Subject offering not found")
+        
+    # 2. Find groups linked to this offering
+    group_repo = SQLAlchemyClassGroupRepository(db)
+    all_groups = group_repo.list_by_school(school_id)
+    linked_groups = [g for g in all_groups if uid in g.offering_ids]
+    
+    # 3. Get unique student IDs
+    student_ids = set()
+    for g in linked_groups:
+        for s_id in g.student_ids:
+            student_ids.add(s_id)
+            
+    # 4. Fetch student profiles
+    user_repo = SQLAlchemyUserRepository(db)
+    students = []
+    for s_id in student_ids:
+        # We use list_by_school logic to get roles in school context if possible, 
+        # but for now get_by_id is fine for name/email.
+        u = user_repo.get_by_id(s_id)
+        if u:
+            students.append({
+                "uid": u.uid,
+                "name": u.name,
+                "email": str(u.email) if u.email else None,
+                "roles": [str(r) for r in u.roles]
+            })
+            
+    return students
+
 @router.delete("/subject-offerings/{uid}", status_code=204)
 def delete_subject_offering(uid: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     try:

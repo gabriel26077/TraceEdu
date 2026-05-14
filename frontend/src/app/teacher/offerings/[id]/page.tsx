@@ -58,16 +58,9 @@ export default function TeacherOfferingPage() {
         const sub = await api.get<Subject>(`/schools/${currentSchool.uid}/subjects/${off.subject_id}`)
         setSubject(sub)
 
-        // 3. Find Groups linked to this offering to get students
-        const allGroups = await api.get<any[]>(`/schools/${currentSchool.uid}/class-groups`)
-        const linkedGroups = allGroups.filter(g => g.offering_ids.includes(off.uid))
-        
-        // 4. Get student IDs (union)
-        const studentIds = Array.from(new Set(linkedGroups.flatMap(g => g.student_ids)))
-        
-        // 5. Fetch student profiles
-        const allUsers = await api.get<any[]>(`/schools/${currentSchool.uid}/users`)
-        setStudents(allUsers.filter(u => studentIds.includes(u.uid)))
+        // 3. Fetch Enrolled Students for this offering
+        const offeringStudents = await api.get<Student[]>(`/schools/${currentSchool.uid}/subject-offerings/${params.id}/students`)
+        setStudents(offeringStudents)
 
       } catch (err) {
         console.error("Error fetching offering details:", err)
