@@ -15,6 +15,7 @@ class SQLAlchemySubjectOfferingRepository(SubjectOfferingRepository):
         
         model.school_id = offering.school_id
         model.subject_id = offering.subject_id
+        model.class_group_id = offering.class_group_id
         model.period = offering.period
         model.teacher_ids = offering.teacher_ids
         
@@ -39,6 +40,8 @@ class SQLAlchemySubjectOfferingRepository(SubjectOfferingRepository):
             uid=model.uid,
             school_id=model.school_id,
             subject_id=model.subject_id,
+            class_group_id=model.class_group_id,
             period=model.period,
-            teacher_ids=model.teacher_ids
+            teacher_ids=model.teacher_ids,
+            student_ids=[e.student_id for e in model.enrollments]
         )

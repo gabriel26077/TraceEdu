@@ -18,6 +18,9 @@ class SaveAssessmentGradeUseCase:
         self.repository = repository
 
     def execute(self, input: SaveAssessmentGradeInput) -> Grade:
+        if input.value < 0 or input.value > 10:
+            raise Exception("Grade must be between 0 and 10")
+
         # Check if grade already exists to update it, or create a new one
         existing = self.repository.get_specific_grade(
             input.offering_id, 

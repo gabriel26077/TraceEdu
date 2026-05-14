@@ -91,6 +91,11 @@ export default function TeacherOfferingPage() {
       const val = parseFloat(value.replace(",", "."))
       if (isNaN(val)) return
       
+      if (val < 0 || val > 10) {
+        alert("A nota deve estar entre 0 e 10")
+        return
+      }
+      
       await api.post(`/schools/${currentSchool.uid}/subject-offerings/${offering!.uid}/students/${studentId}/grades`, {
         unit,
         assessment_number: av,
@@ -333,11 +338,14 @@ export default function TeacherOfferingPage() {
                              <td key={av} className="px-1 py-2">
                                 <div className="flex justify-center">
                                   <input 
+                                    key={`${student.uid}-${activeUnitTab}-${av}`}
                                     type="text" 
                                     inputMode="decimal"
                                     placeholder="0.0" 
                                     defaultValue={getGradeValue(student.uid, activeUnitTab, av)}
-                                    onBlur={(e) => handleGradeChange(student.uid, activeUnitTab, av, e.target.value)}
+                                    onBlur={(e) => {
+                                      handleGradeChange(student.uid, activeUnitTab, av, e.target.value)
+                                    }}
                                     className="w-14 h-9 bg-zinc-900/30 border border-zinc-800/50 rounded-lg text-center text-xs font-bold text-white focus:outline-none focus:border-emerald-500/50 transition-all placeholder:text-zinc-800 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                   />
                                 </div>

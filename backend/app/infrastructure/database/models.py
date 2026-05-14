@@ -113,8 +113,12 @@ class SubjectOfferingModel(Base):
     uid = Column(String, primary_key=True)
     school_id = Column(String, ForeignKey("schools.uid"), nullable=False)
     subject_id = Column(String, ForeignKey("subjects.uid"), nullable=False)
+    class_group_id = Column(String, ForeignKey("class_groups.uid"), nullable=True)
     period = Column(String, nullable=False)
     teacher_ids = Column(JSON, default=[]) # Refs to User IDs
+    
+    enrollments = relationship("EnrollmentModel", back_populates="offering")
+
 
 class EnrollmentModel(Base):
     __tablename__ = "enrollments"
@@ -125,3 +129,5 @@ class EnrollmentModel(Base):
     total_absences = Column(Integer, default=0)
     status = Column(String, nullable=False)
     grades = Column(JSON, default=[])
+
+    offering = relationship("SubjectOfferingModel", back_populates="enrollments")

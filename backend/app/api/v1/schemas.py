@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional
 
 class UserCreate(BaseModel):
@@ -50,7 +50,7 @@ class SubjectOfferingResponse(BaseModel):
     uid: str
     school_id: str
     subject_id: str
-    class_group_id: str
+    class_group_id: Optional[str] = None
     period: str
     teacher_ids: List[str]
     student_ids: List[str]
@@ -61,7 +61,7 @@ class SubjectOfferingResponse(BaseModel):
 class GradeCreate(BaseModel):
     unit: int
     assessment_number: int
-    value: float
+    value: float = Field(..., ge=0, le=10)
     observations: Optional[str] = None
 
 class GradeResponse(BaseModel):

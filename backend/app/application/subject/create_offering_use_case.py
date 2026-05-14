@@ -23,6 +23,7 @@ class CreateOfferingUseCase:
             uid=str(uuid4()), 
             school_id=input.school_id, 
             subject_id=input.subject_id, 
+            class_group_id=input.class_group_id,
             period=input.period, 
             teacher_ids=input.teacher_ids
         )
