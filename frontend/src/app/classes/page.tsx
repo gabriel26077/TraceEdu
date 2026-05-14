@@ -148,12 +148,35 @@ export default function ClassesPage() {
 
   if (!currentSchool) return null
 
-  // Group by Period
+  // Group by Period and Sort
   const groupedClasses: { [period: string]: ClassGroup[] } = {}
   classes.forEach(c => {
     if (!groupedClasses[c.period]) groupedClasses[c.period] = []
     groupedClasses[c.period].push(c)
   })
+
+  // Sort groups within each period
+  Object.keys(groupedClasses).forEach(period => {
+    groupedClasses[period].sort((a, b) => {
+      // 1. Regular first
+      if (a.is_regular && !b.is_regular) return -1
+      if (!a.is_regular && b.is_regular) return 1
+      
+      // 2. Grade (if regular)
+      if (a.is_regular && b.is_regular && a.grade !== b.grade) {
+        const gradeA = parseInt(a.grade || "0")
+        const gradeB = parseInt(b.grade || "0")
+        if (!isNaN(gradeA) && !isNaN(gradeB)) return gradeA - gradeB
+        return (a.grade || "").localeCompare(b.grade || "")
+      }
+      
+      // 3. Name (lexicographic)
+      return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+    })
+  })
+
+  // Get sorted periods (descending)
+  const sortedPeriods = Object.keys(groupedClasses).sort((a, b) => b.localeCompare(a))
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
@@ -203,8 +226,10 @@ export default function ClassesPage() {
             </div>
             <p className="text-zinc-500">No class groups found. Create your regular classes to start managing student enrollments!</p>
           </div>
-        ) : Object.entries(groupedClasses).map(([period, items]) => (
-          <div key={period} className="space-y-6">
+        ) : sortedPeriods.map(period => {
+          const items = groupedClasses[period]
+          return (
+            <div key={period} className="space-y-6">
             <div className="flex items-center gap-3 px-2">
               <Calendar size={16} className="text-emerald-500" />
               <h3 className="text-sm font-black text-zinc-400 uppercase tracking-widest">Academic Year {period}</h3>
@@ -289,8 +314,9 @@ export default function ClassesPage() {
                 </div>
               ))}
             </div>
-          </div>
-        ))}
+            </div>
+          )
+        })}
       </div>
 
       {/* New Group Modal */}
