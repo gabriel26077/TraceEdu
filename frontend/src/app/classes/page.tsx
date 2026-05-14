@@ -53,7 +53,7 @@ export default function ClassesPage() {
   const [formData, setFormData] = useState({
     name: "",
     shift: "morning",
-    period: "2024",
+    period: "",
     is_regular: true,
     level: "fundamental_1",
     grade: "1",
@@ -100,7 +100,7 @@ export default function ClassesPage() {
       setIsModalOpen(false)
       // Reset form
       setFormData({
-        name: "", shift: "morning", period: "2024", is_regular: true,
+        name: "", shift: "morning", period: "", is_regular: true,
         level: "fundamental_1", grade: "1", notes: "", required_subject_ids: []
       })
       fetchData()
@@ -333,12 +333,13 @@ export default function ClassesPage() {
                     <div>
                       <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5 block ml-1">Period / Year</label>
                       <input 
-                        required
-                        placeholder="Ex: 2024"
-                        className="premium-input"
-                        value={formData.period}
-                        onChange={e => setFormData({...formData, period: e.target.value})}
-                      />
+                      type="text" 
+                      required
+                      placeholder="e.g. 2024.1"
+                      className="premium-input"
+                      value={formData.period}
+                      onChange={e => setFormData({...formData, period: e.target.value})}
+                    />
                     </div>
                     <div>
                       <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5 block ml-1">Daily Shift</label>

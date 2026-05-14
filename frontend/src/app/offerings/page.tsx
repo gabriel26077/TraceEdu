@@ -64,7 +64,7 @@ export default function OfferingsPage() {
   // Form State
   const [formData, setFormData] = useState({
     subject_id: "",
-    period: "2024.1",
+    period: "",
     class_group_id: "",
     teacher_ids: [] as string[]
   })
@@ -151,8 +151,9 @@ export default function OfferingsPage() {
 
     try {
       await api.post(`/schools/${currentSchool.uid}/subject-offerings`, payload)
+      alert("Subject offering created successfully!")
+      setFormData({ subject_id: "", period: "", class_group_id: "", teacher_ids: [] })
       setIsModalOpen(false)
-      setFormData({ subject_id: "", period: "2024.1", class_group_id: "", teacher_ids: [] })
       fetchData()
     } catch (err: any) {
       alert(err.message || "Error creating offering")
@@ -346,8 +347,9 @@ export default function OfferingsPage() {
                     <div className="col-span-1">
                       <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5 block ml-1">Academic Period</label>
                       <input 
+                        type="text" 
                         required
-                        placeholder="Ex: 2024.1"
+                        placeholder="e.g. 2024.1"
                         className="premium-input"
                         value={formData.period}
                         onChange={e => setFormData({...formData, period: e.target.value})}
