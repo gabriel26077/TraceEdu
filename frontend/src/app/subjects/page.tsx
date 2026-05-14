@@ -305,17 +305,17 @@ export default function SubjectsPage() {
                         {expandedGrades.includes(gradeKey) && (
                           <div className="flex flex-col gap-1 p-2 bg-zinc-950/40">
                             {subjects.length > 0 ? subjects.map(subject => (
-                              <div key={subject.uid} className="flex items-center justify-between p-3 bg-zinc-900/40 border border-zinc-800/30 rounded-xl hover:border-emerald-500/30 transition-all group">
+                              <div key={subject.uid} className="flex items-center justify-between py-1.5 px-3 bg-zinc-900/40 border border-zinc-800/30 rounded-xl hover:border-emerald-500/30 transition-all group">
                                 <div className="flex items-center gap-4 flex-1 min-w-0">
-                                  <div className="w-8 h-8 bg-zinc-950 rounded-lg flex items-center justify-center border border-zinc-800 group-hover:border-emerald-500/30 transition-colors">
-                                    <BookOpen size={14} className="text-zinc-600 group-hover:text-emerald-500 transition-colors" />
+                                  <div className="w-7 h-7 bg-zinc-950 rounded-lg flex items-center justify-center border border-zinc-800 group-hover:border-emerald-500/30 transition-colors">
+                                    <BookOpen size={12} className="text-zinc-400 group-hover:text-emerald-500 transition-colors" />
                                   </div>
                                   <div className="min-w-0 flex-1">
                                     <h4 className="text-sm font-bold text-zinc-200 group-hover:text-white transition-colors truncate">
                                       {subject.name}
                                     </h4>
                                     {subject.description && (
-                                      <p className="text-[10px] text-zinc-600 truncate max-w-md italic">{subject.description}</p>
+                                      <p className="text-[9px] text-zinc-600 truncate max-w-md italic leading-tight">{subject.description}</p>
                                     )}
                                   </div>
                                 </div>
