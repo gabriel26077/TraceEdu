@@ -362,7 +362,7 @@ export default function ClassDetailPage() {
                 </div>
 
                 {/* Pending Curriculum Requirements */}
-                {group.is_regular && (() => {
+                {(() => {
                   const coveredIds = offerings.map(o => o.subject_id)
                   const pending = allSchoolSubjects.filter(s => 
                     group.required_subject_ids.includes(s.uid) && 

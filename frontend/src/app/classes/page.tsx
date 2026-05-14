@@ -265,8 +265,8 @@ export default function ClassesPage() {
                         )}
                       </div>
 
-                      {/* Progress */}
-                      {group.is_regular && (
+                      {/* Completion Progress for Required Subjects */}
+                      {group.required_subject_ids.length > 0 && (
                         <div className="hidden md:block w-48 space-y-1">
                           <div className="flex justify-between items-center text-[9px] font-black">
                             <span className="text-zinc-600 uppercase">Coverage</span>
