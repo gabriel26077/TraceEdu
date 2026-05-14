@@ -17,7 +17,8 @@ import {
   BookOpen,
   Filter,
   AlertCircle,
-  Trash2
+  Trash2,
+  Users
 } from "lucide-react"
 import { useSchool } from "@/contexts/SchoolContext"
 import { cn } from "@/lib/utils"
@@ -44,6 +45,7 @@ interface ClassGroup {
   grade?: string
   notes?: string
   offering_ids: string[]
+  student_ids: string[]
   required_subject_ids: string[]
 }
 
@@ -61,6 +63,9 @@ export default function ClassesPage() {
   const [offerings, setOfferings] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isStudentsModalOpen, setIsStudentsModalOpen] = useState(false)
+  const [selectedClass, setSelectedClass] = useState<ClassGroup | null>(null)
+  const [allStudents, setAllStudents] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState("")
 
   // Form State
@@ -93,6 +98,38 @@ export default function ClassesPage() {
       console.error("Error fetching classes data:", err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function fetchSchoolStudents() {
+    if (!currentSchool) return
+    try {
+      const data = await api.get<any[]>(`/schools/${currentSchool.uid}/users`)
+      // Filter only students
+      setAllStudents(data.filter(u => u.roles.includes("student")))
+    } catch (err) {
+      console.error("Error fetching students:", err)
+    }
+  }
+
+  const handleEnrollStudent = async (studentId: string) => {
+    if (!currentSchool || !selectedClass) return
+    try {
+      await api.post(`/schools/${currentSchool.uid}/class-groups/${selectedClass.uid}/students`, {
+        student_id: studentId
+      })
+      // Update local state for immediate feedback
+      setSelectedClass(prev => {
+        if (!prev) return null
+        return {
+          ...prev,
+          student_ids: [...(prev.student_ids || []), studentId]
+        }
+      })
+      // Refresh main class data
+      fetchData()
+    } catch (err: any) {
+      alert(err.message || "Error enrolling student")
     }
   }
 
@@ -307,6 +344,18 @@ export default function ClassesPage() {
                         </div>
                         
                         <div className="flex items-center gap-2">
+                          <button 
+                              onClick={() => {
+                                setSelectedClass(group)
+                                setIsStudentsModalOpen(true)
+                                fetchSchoolStudents()
+                              }}
+                              className="p-1.5 text-zinc-700 hover:text-emerald-400 transition-colors bg-zinc-950/50 rounded-lg border border-zinc-900 flex items-center gap-1"
+                              title="Manage Students"
+                          >
+                              <Users size={14} />
+                              <span className="text-[9px] font-black uppercase tracking-tighter pr-1">{group.student_ids?.length || 0}</span>
+                          </button>
                           <button 
                               onClick={() => handleDeleteClass(group.uid, group.name)}
                               className="p-1.5 text-zinc-700 hover:text-rose-500 transition-colors bg-zinc-950/50 rounded-lg border border-zinc-900"
@@ -543,6 +592,82 @@ export default function ClassesPage() {
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Students Modal */}
+      {isStudentsModalOpen && selectedClass && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-2xl max-h-[80vh] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
+            <header className="p-6 border-b border-zinc-800 flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-bold text-white">Manage Students</h3>
+                <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-1">{selectedClass.name} • {selectedClass.student_ids?.length || 0} Enrolled</p>
+              </div>
+              <button onClick={() => setIsStudentsModalOpen(false)} className="text-zinc-500 hover:text-white transition-colors">
+                <X size={20} />
+              </button>
+            </header>
+
+            <div className="p-6 overflow-y-auto space-y-6">
+              {/* Enrolled Students */}
+              <div className="space-y-3">
+                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Current Roster</p>
+                <div className="grid gap-2">
+                  {selectedClass.student_ids?.length === 0 ? (
+                    <div className="p-8 border-2 border-dashed border-zinc-800 rounded-2xl text-center">
+                      <p className="text-xs text-zinc-600">No students enrolled yet.</p>
+                    </div>
+                  ) : (
+                    selectedClass.student_ids.map(sid => {
+                      const student = allStudents.find(s => s.uid === sid)
+                      return (
+                        <div key={sid} className="glass-card p-3 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 text-xs font-bold border border-emerald-500/20">
+                              {student?.name?.[0] || "?"}
+                            </div>
+                            <span className="text-sm font-bold text-zinc-300">{student?.name || "Loading..."}</span>
+                          </div>
+                          <button className="text-xs font-bold text-zinc-600 hover:text-rose-500 transition-colors">Unlink</button>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* Add New Students */}
+              <div className="space-y-3">
+                <p className="text-[10px] font-black text-emerald-500/50 uppercase tracking-widest ml-1">Add to Class</p>
+                <div className="glass-card p-2 flex items-center px-4 gap-3 mb-4">
+                  <Search size={14} className="text-zinc-600" />
+                  <input placeholder="Search school students..." className="bg-transparent border-none focus:ring-0 text-xs text-zinc-400 w-full" />
+                </div>
+                <div className="grid gap-2">
+                  {allStudents
+                    .filter(s => !selectedClass.student_ids.includes(s.uid))
+                    .slice(0, 5)
+                    .map(student => (
+                    <div key={student.uid} className="glass-card p-3 flex items-center justify-between hover:border-emerald-500/30 transition-all">
+                       <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-500 text-xs font-bold border border-zinc-700">
+                            {student.name[0]}
+                          </div>
+                          <span className="text-sm font-bold text-zinc-400">{student.name}</span>
+                       </div>
+                       <button 
+                        onClick={() => handleEnrollStudent(student.uid)}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-zinc-950 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all border border-emerald-500/20"
+                       >
+                         <Plus size={14} />
+                         Add
+                       </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

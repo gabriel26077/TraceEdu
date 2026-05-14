@@ -21,7 +21,7 @@ class EnrollStudentUseCase:
         if input.student_id not in group.student_ids:
             group.student_ids.append(input.student_id)
             self.class_repo.save(group)
-        for offering_id in group.base_subject_offering_ids:
+        for offering_id in group.offering_ids:
             existing = self.enroll_repo.get_by_student_and_offering(input.student_id, offering_id)
             if not existing:
                 enrollment = Enrollment(uid=str(uuid4()), school_id=group.school_id, student_id=input.student_id, 
