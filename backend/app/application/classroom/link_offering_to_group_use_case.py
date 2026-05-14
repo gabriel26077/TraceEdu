@@ -15,10 +15,6 @@ class LinkOfferingToGroupUseCase:
         if not group:
             raise Exception("Class group not found")
 
-        # Update Offering
-        offering.class_group_id = group_id
-        self.offering_repo.save(offering)
-
         # Update Group
         if offering_id not in group.offering_ids:
             group.offering_ids.append(offering_id)

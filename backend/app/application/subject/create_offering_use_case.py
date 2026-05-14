@@ -24,7 +24,6 @@ class CreateOfferingUseCase:
             school_id=input.school_id, 
             subject_id=input.subject_id, 
             period=input.period, 
-            class_group_id=input.class_group_id,
             teacher_ids=input.teacher_ids
         )
         self.repo.save(offering)

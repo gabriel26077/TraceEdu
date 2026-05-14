@@ -39,7 +39,6 @@ interface Offering {
   subject_id: string
   period: string
   teacher_ids: string[]
-  class_group_id: string
   // These will be enriched by the UI
   subject_name?: string
   teachers?: User[]

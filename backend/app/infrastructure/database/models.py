@@ -97,7 +97,6 @@ class SubjectOfferingModel(Base):
     uid = Column(String, primary_key=True)
     school_id = Column(String, ForeignKey("schools.uid"), nullable=False)
     subject_id = Column(String, ForeignKey("subjects.uid"), nullable=False)
-    class_group_id = Column(String, ForeignKey("class_groups.uid"), nullable=True)
     period = Column(String, nullable=False)
     teacher_ids = Column(JSON, default=[]) # Refs to User IDs
 
