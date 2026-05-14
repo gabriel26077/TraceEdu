@@ -44,9 +44,7 @@ export function Sidebar() {
     }
     if (currentRole === "teacher") {
       items.push(
-        { icon: LayoutDashboard, label: "My Overview", href: "/" },
-        { icon: GraduationCap, label: "My Classes", href: "/teacher/classes" },
-        { icon: UserCheck, label: "Grade Posting", href: "/teacher/grades" }
+        { icon: LayoutDashboard, label: "My Teaching Hub", href: "/" }
       )
     }
     return items
