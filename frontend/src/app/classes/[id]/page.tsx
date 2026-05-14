@@ -247,13 +247,21 @@ export default function ClassDetailPage() {
                   <div className="flex justify-between text-[11px] font-black">
                     <span className="text-zinc-500">COMPLETED</span>
                     <span className="text-emerald-400">
-                      {group.required_subject_ids.length > 0 ? Math.round((group.offering_ids.length / group.required_subject_ids.length) * 100) : 0}%
+                      {(() => {
+                        const coveredIds = offerings.map(o => o.subject_id)
+                        const count = group.required_subject_ids.filter(sid => coveredIds.includes(sid)).length
+                        const total = group.required_subject_ids.length
+                        return total > 0 ? Math.round((count / total) * 100) : 0
+                      })()}%
                     </span>
                   </div>
                   <div className="h-2 bg-zinc-950 rounded-full overflow-hidden border border-zinc-900 flex gap-0.5">
-                    {group.required_subject_ids.map(sid => (
-                      <div key={sid} className={cn("h-full flex-1", group.offering_ids.includes(sid) ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]" : "bg-zinc-900")} />
-                    ))}
+                    {(() => {
+                      const coveredIds = offerings.map(o => o.subject_id)
+                      return group.required_subject_ids.map(sid => (
+                        <div key={sid} className={cn("h-full flex-1", coveredIds.includes(sid) ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]" : "bg-zinc-900")} />
+                      ))
+                    })()}
                   </div>
                 </div>
               </div>

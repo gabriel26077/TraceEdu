@@ -28,6 +28,11 @@ interface Subject {
   grade: string
 }
 
+interface Offering {
+  uid: string
+  subject_id: string
+}
+
 interface ClassGroup {
   uid: string
   name: string
@@ -45,6 +50,7 @@ export default function ClassesPage() {
   const { currentSchool } = useSchool()
   const [classes, setClasses] = useState<ClassGroup[]>([])
   const [schoolSubjects, setSchoolSubjects] = useState<Subject[]>([])
+  const [offerings, setOfferings] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
@@ -65,13 +71,16 @@ export default function ClassesPage() {
     if (!currentSchool) return
     setLoading(true)
     try {
-      // 1. Fetch Class Groups
-      const classesData = await api.get<ClassGroup[]>(`/schools/${currentSchool.uid}/class-groups`)
+      // Fetch everything in parallel
+      const [classesData, subjectsData, offeringsData] = await Promise.all([
+        api.get<ClassGroup[]>(`/schools/${currentSchool.uid}/class-groups`),
+        api.get<Subject[]>(`/schools/${currentSchool.uid}/subjects`),
+        api.get<Offering[]>(`/schools/${currentSchool.uid}/subject-offerings`)
+      ])
+      
       setClasses(classesData)
-
-      // 2. Fetch School Subjects (to select required ones)
-      const subjectsData = await api.get<Subject[]>(`/schools/${currentSchool.uid}/subjects`)
       setSchoolSubjects(subjectsData)
+      setOfferings(offeringsData)
     } catch (err) {
       console.error("Error fetching classes data:", err)
     } finally {
@@ -254,13 +263,23 @@ export default function ClassesPage() {
                           <div className="flex justify-between text-[10px] font-bold uppercase tracking-tight">
                             <span className="text-zinc-500">Academic Coverage</span>
                             <span className="text-emerald-400">
-                              {group.required_subject_ids.length > 0 ? Math.round((group.offering_ids.length / group.required_subject_ids.length) * 100) : 0}%
+                              {(() => {
+                                const currentGroupOfferings = offerings.filter((o: any) => group.offering_ids.includes(o.uid))
+                                const coveredSubjectIds = currentGroupOfferings.map((o: any) => o.subject_id)
+                                const count = group.required_subject_ids.filter(sid => coveredSubjectIds.includes(sid)).length
+                                const total = group.required_subject_ids.length
+                                return total > 0 ? Math.round((count / total) * 100) : 0
+                              })()}%
                             </span>
                           </div>
                           <div className="h-1 bg-zinc-900 rounded-full overflow-hidden flex gap-0.5">
-                            {group.required_subject_ids.map(sid => {
-                              return <div key={sid} className={cn("h-full flex-1", group.offering_ids.includes(sid) ? "bg-emerald-500" : "bg-zinc-800")} />
-                            })}
+                            {(() => {
+                                const currentGroupOfferings = offerings.filter((o: any) => group.offering_ids.includes(o.uid))
+                                const coveredSubjectIds = currentGroupOfferings.map((o: any) => o.subject_id)
+                                return group.required_subject_ids.map(sid => (
+                                  <div key={sid} className={cn("h-full flex-1", coveredSubjectIds.includes(sid) ? "bg-emerald-500" : "bg-zinc-800")} />
+                                ))
+                            })()}
                           </div>
                         </div>
                       )}
