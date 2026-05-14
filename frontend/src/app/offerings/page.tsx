@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { api } from "@/lib/api"
 import { 
   ClipboardList, 
@@ -38,16 +39,26 @@ interface Offering {
   subject_id: string
   period: string
   teacher_ids: string[]
+  class_group_id: string
   // These will be enriched by the UI
   subject_name?: string
   teachers?: User[]
 }
 
+interface ClassGroup {
+  uid: string
+  name: string
+  period: string
+}
+
 export default function OfferingsPage() {
   const { currentSchool } = useSchool()
+  const searchParams = useSearchParams()
   const [offerings, setOfferings] = useState<Offering[]>([])
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [teachers, setTeachers] = useState<User[]>([])
+  const [classes, setClasses] = useState<ClassGroup[]>([])
+  const [targetClass, setTargetClass] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   
@@ -55,6 +66,7 @@ export default function OfferingsPage() {
   const [formData, setFormData] = useState({
     subject_id: "",
     period: "2024.1",
+    class_group_id: "",
     teacher_ids: [] as string[]
   })
 
@@ -102,6 +114,30 @@ export default function OfferingsPage() {
     fetchData()
   }, [currentSchool])
 
+  useEffect(() => {
+    const classId = searchParams.get("class_id")
+    if (classId) {
+      api.get<any>(`/class-groups/${classId}`).then(group => {
+        setTargetClass(group)
+        setFormData(prev => ({ 
+          ...prev, 
+          class_group_id: classId,
+          period: group.period 
+        }))
+        setIsModalOpen(true)
+      })
+    } else {
+      setTargetClass(null)
+    }
+  }, [searchParams])
+
+  const filteredSubjects = subjects.filter(s => {
+    if (targetClass?.is_regular && targetClass.level) {
+      return s.level === targetClass.level
+    }
+    return true
+  })
+
   const handleCreateOffering = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!currentSchool) return
@@ -113,7 +149,7 @@ export default function OfferingsPage() {
     try {
       await api.post(`/schools/${currentSchool.uid}/subject-offerings`, formData)
       setIsModalOpen(false)
-      setFormData({ subject_id: "", period: "2024.1", teacher_ids: [] })
+      setFormData({ subject_id: "", period: "2024.1", class_group_id: "", teacher_ids: [] })
       fetchData()
     } catch (err: any) {
       alert(err.message || "Error creating offering")
@@ -284,31 +320,49 @@ export default function OfferingsPage() {
                   </h4>
                   
                   <div>
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5 block ml-1">Select Subject</label>
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5 block ml-1 flex justify-between items-center">
+                      Subject
+                      {targetClass?.is_regular && (
+                        <span className="text-[9px] text-emerald-500 lowercase italic font-normal">filtered by {targetClass.level?.replace('_', ' ')}</span>
+                      )}
+                    </label>
                     <select 
                       required
                       className="premium-input bg-zinc-950 appearance-none"
                       value={formData.subject_id}
                       onChange={e => setFormData({...formData, subject_id: e.target.value})}
                     >
-                      <option value="">Choose a subject...</option>
-                      {subjects.map(s => (
-                        <option key={s.uid} value={s.uid}>
-                          [{s.level.substring(0, 4).toUpperCase()} {s.grade}] {s.name}
-                        </option>
+                      <option value="">Select a subject...</option>
+                      {filteredSubjects.map(s => (
+                        <option key={s.uid} value={s.uid}>{s.name} ({s.level?.replace('_', ' ')})</option>
                       ))}
                     </select>
                   </div>
 
-                  <div>
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5 block ml-1">Academic Period</label>
-                    <input 
-                      required
-                      placeholder="Ex: 2024.1"
-                      className="premium-input"
-                      value={formData.period}
-                      onChange={e => setFormData({...formData, period: e.target.value})}
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-1">
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5 block ml-1">Academic Period</label>
+                      <input 
+                        required
+                        placeholder="Ex: 2024.1"
+                        className="premium-input"
+                        value={formData.period}
+                        onChange={e => setFormData({...formData, period: e.target.value})}
+                      />
+                    </div>
+                    <div className="col-span-1">
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5 block ml-1">Class Group <span className="lowercase font-normal italic">(optional)</span></label>
+                      <select 
+                        className="premium-input bg-zinc-950 appearance-none"
+                        value={formData.class_group_id}
+                        onChange={e => setFormData({...formData, class_group_id: e.target.value})}
+                      >
+                        <option value="">No Group / Extra</option>
+                        {classes.map(c => (
+                          <option key={c.uid} value={c.uid}>{c.name} ({c.period})</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
 

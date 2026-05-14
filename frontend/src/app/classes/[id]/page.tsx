@@ -17,7 +17,8 @@ import {
   FileText,
   CheckCircle2,
   AlertCircle,
-  MoreVertical
+  MoreVertical,
+  X
 } from "lucide-react"
 import { useSchool } from "@/contexts/SchoolContext"
 import { cn } from "@/lib/utils"
@@ -57,28 +58,30 @@ export default function ClassDetailPage() {
   const { currentSchool } = useSchool()
   const [group, setGroup] = useState<ClassGroup | null>(null)
   const [offerings, setOfferings] = useState<SubjectOffering[]>([])
+  const [allSchoolOfferings, setAllSchoolOfferings] = useState<SubjectOffering[]>([])
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<"offerings" | "students">("offerings")
 
   async function fetchDetailData() {
     if (!currentSchool || !params.id) return
     setLoading(true)
     try {
-      // 1. Fetch Group Details
-      const groupData = await api.get<ClassGroup>(`/class-groups/${params.id}`)
+      const [groupData, allOfferings, allUsers, allSubjects] = await Promise.all([
+        api.get<ClassGroup>(`/class-groups/${params.id}`),
+        api.get<SubjectOffering[]>(`/schools/${currentSchool.uid}/subject-offerings`),
+        api.get<any[]>(`/schools/${currentSchool.uid}/users`),
+        api.get<any[]>(`/schools/${currentSchool.uid}/subjects`)
+      ])
+
       setGroup(groupData)
-
-      // 2. Fetch All School Offerings and filter
-      const allOfferings = await api.get<SubjectOffering[]>(`/schools/${currentSchool.uid}/subject-offerings`)
-      const classOfferings = allOfferings.filter(o => groupData.offering_ids.includes(o.uid))
-      setOfferings(classOfferings)
-
-      // 3. Fetch All School Users (Students) and filter
-      const allUsers = await api.get<any[]>(`/schools/${currentSchool.uid}/users`)
-      const classStudents = allUsers.filter(u => groupData.student_ids.includes(u.uid))
-      setStudents(classStudents)
-
+      setAllSchoolOfferings(allOfferings.map(o => {
+        const sub = allSubjects.find(s => s.uid === o.subject_id)
+        return { ...o, subject_level: sub?.level }
+      }))
+      setOfferings(allOfferings.filter(o => groupData.offering_ids.includes(o.uid)))
+      setStudents(allUsers.filter(u => groupData.student_ids.includes(u.uid)))
     } catch (err) {
       console.error("Error fetching class detail:", err)
     } finally {
@@ -86,9 +89,31 @@ export default function ClassDetailPage() {
     }
   }
 
+  const handleLinkOffering = async (offeringId: string) => {
+    if (!group) return
+    try {
+      await api.post(`/class-groups/${group.uid}/link-offering/${offeringId}`, {})
+      setIsLinkModalOpen(false)
+      fetchDetailData()
+    } catch (err: any) {
+      alert(err.message || "Error linking offering")
+    }
+  }
+
   useEffect(() => {
     fetchDetailData()
   }, [currentSchool, params.id])
+
+  const availableOfferings = allSchoolOfferings.filter(o => {
+    const isAlreadyLinked = group?.offering_ids.includes(o.uid)
+    if (isAlreadyLinked) return false
+    
+    // Safety check: Filter by Level if group is regular
+    if (group?.is_regular && group.level) {
+      return (o as any).subject_level === group.level
+    }
+    return true
+  })
 
   if (loading) {
     return (
@@ -255,34 +280,59 @@ export default function ClassDetailPage() {
 
           <div className="animate-in fade-in slide-in-from-top-2 duration-500">
             {activeTab === "offerings" ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {offerings.length === 0 ? (
-                  <div className="col-span-full glass-card p-12 text-center space-y-4">
-                    <BookOpen size={40} className="text-zinc-800 mx-auto" />
-                    <p className="text-zinc-500">No subject offerings have been added to this class yet.</p>
-                    <Link href="/offerings" className="inline-flex items-center gap-2 text-emerald-400 text-xs font-black uppercase tracking-widest hover:text-emerald-300 transition-colors">
-                      <Plus size={14} /> Link New Offering
+              <div className="space-y-4">
+                <div className="flex justify-between items-center px-2">
+                  <h4 className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Active Offerings</h4>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => setIsLinkModalOpen(true)}
+                      className="text-[10px] font-black text-emerald-500 hover:text-emerald-400 transition-colors flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/5 rounded-lg border border-emerald-500/20"
+                    >
+                      <Plus size={12} /> LINK EXISTING
+                    </button>
+                    <Link 
+                      href={`/offerings?class_id=${group.uid}`}
+                      className="text-[10px] font-black text-white hover:text-emerald-400 transition-colors flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 rounded-lg border border-zinc-800"
+                    >
+                      <Plus size={12} /> CREATE NEW
                     </Link>
                   </div>
-                ) : offerings.map(offering => (
-                  <div key={offering.uid} className="glass-card p-5 group hover:border-emerald-500/30 transition-all flex justify-between items-center">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-zinc-950 rounded-xl flex items-center justify-center border border-zinc-900 group-hover:border-emerald-500/20 transition-all">
-                        <BookOpen size={20} className="text-emerald-500" />
-                      </div>
-                      <div>
-                        <h5 className="font-bold text-white group-hover:text-emerald-400 transition-colors">{offering.subject_name}</h5>
-                        <p className="text-[10px] text-zinc-500 font-medium flex items-center gap-1.5">
-                          <User size={10} /> 
-                          {offering.teacher_names?.length ? offering.teacher_names.join(", ") : "Unassigned"}
-                        </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {offerings.length === 0 ? (
+                    <div className="col-span-full glass-card p-12 text-center space-y-4">
+                      <BookOpen size={40} className="text-zinc-800 mx-auto" />
+                      <p className="text-zinc-500">No subject offerings have been added to this class yet.</p>
+                      <div className="flex justify-center gap-4 mt-4">
+                        <button onClick={() => setIsLinkModalOpen(true)} className="text-emerald-400 text-xs font-black uppercase tracking-widest hover:text-emerald-300 transition-colors flex items-center gap-2">
+                          <Plus size={14} /> Link Existing
+                        </button>
+                        <Link href={`/offerings?class_id=${group.uid}`} className="text-zinc-400 text-xs font-black uppercase tracking-widest hover:text-white transition-colors flex items-center gap-2">
+                          <Plus size={14} /> Create New
+                        </Link>
                       </div>
                     </div>
-                    <button className="p-2 rounded-lg bg-zinc-950 border border-zinc-900 text-zinc-600 hover:text-white transition-all opacity-0 group-hover:opacity-100">
-                      <ChevronRight size={16} />
-                    </button>
-                  </div>
-                ))}
+                  ) : offerings.map(offering => (
+                    <div key={offering.uid} className="glass-card p-5 group hover:border-emerald-500/30 transition-all flex justify-between items-center">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-zinc-950 rounded-xl flex items-center justify-center border border-zinc-900 group-hover:border-emerald-500/20 transition-all">
+                          <BookOpen size={20} className="text-emerald-500" />
+                        </div>
+                        <div>
+                          <h5 className="font-bold text-white group-hover:text-emerald-400 transition-colors">{offering.subject_name}</h5>
+                          <p className="text-[10px] text-zinc-500 font-medium flex items-center gap-1.5">
+                            <User size={10} /> 
+                            {offering.teacher_names?.length ? offering.teacher_names.join(", ") : "Unassigned"}
+                          </p>
+                        </div>
+                      </div>
+                      <button className="p-2 rounded-lg bg-zinc-950 border border-zinc-900 text-zinc-600 hover:text-white transition-all opacity-0 group-hover:opacity-100">
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="space-y-3">
@@ -332,6 +382,62 @@ export default function ClassDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal for linking existing offerings */}
+      {isLinkModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-2xl max-h-[80vh] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
+            <header className="p-6 border-b border-zinc-800 flex justify-between items-center shrink-0">
+              <div>
+                <h3 className="text-xl font-bold text-white">Link Existing Offering</h3>
+                <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-1">Select an offering to attach to {group?.name}</p>
+              </div>
+              <button onClick={() => setIsLinkModalOpen(false)} className="text-zinc-500 hover:text-white transition-colors">
+                <X size={20} />
+              </button>
+            </header>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-3 custom-scrollbar text-white">
+              {availableOfferings.length === 0 ? (
+                <div className="text-center py-12 space-y-4">
+                  <div className="w-16 h-16 bg-zinc-950 rounded-full flex items-center justify-center mx-auto text-zinc-800">
+                    <BookOpen size={32} />
+                  </div>
+                  <p className="text-zinc-500 text-sm">All available offerings are already linked to this class or no other offerings exist.</p>
+                </div>
+              ) : availableOfferings.map(offering => (
+                <div 
+                  key={offering.uid}
+                  onClick={() => handleLinkOffering(offering.uid)}
+                  className="p-4 bg-zinc-950 border border-zinc-900 rounded-2xl hover:border-emerald-500/50 cursor-pointer transition-all group flex justify-between items-center"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center border border-emerald-500/10">
+                      <BookOpen size={18} />
+                    </div>
+                    <div>
+                      <h5 className="font-bold text-white group-hover:text-emerald-400 transition-colors">{offering.subject_name}</h5>
+                      <p className="text-[10px] text-zinc-500 font-medium">
+                        Period: {offering.period} • {offering.teacher_names?.length ? offering.teacher_names.join(", ") : "No Teacher"}
+                      </p>
+                    </div>
+                  </div>
+                  <Plus size={18} className="text-zinc-700 group-hover:text-emerald-500 transition-colors" />
+                </div>
+              ))}
+            </div>
+
+            <footer className="p-6 border-t border-zinc-800 bg-zinc-950/50 flex justify-end shrink-0">
+              <button 
+                onClick={() => setIsLinkModalOpen(false)}
+                className="px-6 py-2 text-sm font-bold text-zinc-500 hover:text-white transition-colors"
+              >
+                Close
+              </button>
+            </footer>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -38,6 +38,7 @@ from app.application.enrollment.post_grade_use_case import PostGradeUseCase, Pos
 from app.application.classroom.create_group_use_case import CreateGroupUseCase, CreateGroupInput
 from app.application.classroom.list_groups_use_case import ListGroupsUseCase
 from app.application.classroom.get_group_use_case import GetGroupUseCase
+from app.application.classroom.link_offering_to_group_use_case import LinkOfferingToGroupUseCase
 from app.application.classroom.enroll_student_use_case import EnrollStudentUseCase, EnrollStudentInput
 from app.application.classroom.get_class_report_use_case import GetClassGradesReportUseCase
 from app.application.school.register_school_use_case import RegisterSchoolUseCase, RegisterSchoolInput
@@ -373,10 +374,14 @@ def list_subjects(school_id: str, db: Session = Depends(get_db), current_user = 
 def create_subject_offering(school_id: str, offering_data: SubjectOfferingCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_access)):
     try:
         repository = SQLAlchemySubjectOfferingRepository(db)
-        use_case = CreateOfferingUseCase(repository)
+        group_repo = SQLAlchemyClassGroupRepository(db)
+        use_case = CreateOfferingUseCase(repository, group_repo)
         use_case_input = CreateOfferingInput(
-            school_id=school_id, subject_id=offering_data.subject_id,
-            period=offering_data.period, teacher_ids=offering_data.teacher_ids
+            school_id=school_id, 
+            subject_id=offering_data.subject_id,
+            period=offering_data.period, 
+            class_group_id=offering_data.class_group_id,
+            teacher_ids=offering_data.teacher_ids
         )
         result = use_case.execute(use_case_input)
         db.commit()
@@ -474,6 +479,19 @@ def get_class_group(uid: str, db: Session = Depends(get_db), current_user = Depe
     if not group:
         raise HTTPException(status_code=404, detail="Class group not found")
     return group
+
+@router.post("/class-groups/{group_id}/link-offering/{offering_id}", status_code=204)
+def link_offering_to_group(group_id: str, offering_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    try:
+        offering_repo = SQLAlchemySubjectOfferingRepository(db)
+        group_repo = SQLAlchemyClassGroupRepository(db)
+        use_case = LinkOfferingToGroupUseCase(offering_repo, group_repo)
+        use_case.execute(offering_id, group_id)
+        db.commit()
+        return None
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/schools/{school_id}/class-groups/{group_id}/enroll-student", status_code=204)
 def enroll_student_in_group(school_id: str, group_id: str, request: EnrollStudentInGroupRequest, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_access)):

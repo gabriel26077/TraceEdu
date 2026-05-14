@@ -41,12 +41,14 @@ class SubjectResponse(BaseModel):
 class SubjectOfferingCreate(BaseModel):
     subject_id: str
     period: str
+    class_group_id: Optional[str] = None
     teacher_ids: List[str] = []
 
 class SubjectOfferingResponse(BaseModel):
     uid: str
     subject_id: str
     period: str
+    class_group_id: Optional[str] = None
     teacher_ids: List[str]
 
     class Config:
