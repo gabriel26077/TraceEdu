@@ -1,5 +1,6 @@
 from typing import Optional, List
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 from app.domain.classroom.entities.class_group import ClassGroup
 from app.domain.classroom.repositories.class_group_repository import ClassGroupRepository
 from app.infrastructure.database.models import ClassGroupModel
@@ -21,9 +22,12 @@ class SQLAlchemyClassGroupRepository(ClassGroupRepository):
         model.level = group.level
         model.grade = group.grade
         model.notes = group.notes
-        model.student_ids = group.student_ids
-        model.offering_ids = group.offering_ids
-        model.required_subject_ids = group.required_subject_ids
+        model.student_ids = list(group.student_ids)
+        flag_modified(model, "student_ids")
+        model.offering_ids = list(group.offering_ids)
+        flag_modified(model, "offering_ids")
+        model.required_subject_ids = list(group.required_subject_ids)
+        flag_modified(model, "required_subject_ids")
         
         self.session.add(model)
         self.session.flush()

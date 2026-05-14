@@ -18,7 +18,8 @@ import {
   CheckCircle2,
   AlertCircle,
   MoreVertical,
-  X
+  X,
+  Search
 } from "lucide-react"
 import { useSchool } from "@/contexts/SchoolContext"
 import { cn } from "@/lib/utils"
@@ -63,6 +64,9 @@ export default function ClassDetailPage() {
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
+  const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false)
+  const [allStudents, setAllStudents] = useState<any[]>([])
+  const [studentSearchQuery, setStudentSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState<"offerings" | "students">("offerings")
 
   async function fetchDetailData() {
@@ -108,6 +112,28 @@ export default function ClassDetailPage() {
       fetchDetailData()
     } catch (err: any) {
       alert(err.message || "Error linking offering")
+    }
+  }
+
+  async function fetchAllStudents() {
+    if (!currentSchool) return
+    try {
+      const data = await api.get<any[]>(`/schools/${currentSchool.uid}/users`)
+      setAllStudents(data.filter(u => u.roles.includes("student")))
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handleEnrollStudent = async (studentId: string) => {
+    if (!currentSchool || !group) return
+    try {
+      await api.post(`/schools/${currentSchool.uid}/class-groups/${group.uid}/students`, {
+        student_id: studentId
+      })
+      fetchDetailData()
+    } catch (err: any) {
+      alert(err.message || "Error enrolling student")
     }
   }
 
@@ -216,9 +242,15 @@ export default function ClassDetailPage() {
           <button className="p-3 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-500 hover:text-white transition-all">
             <MoreVertical size={20} />
           </button>
-          <button className="flex items-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black rounded-xl transition-all shadow-lg shadow-emerald-500/10">
+          <button 
+            onClick={() => {
+              setIsEnrollModalOpen(true)
+              fetchAllStudents()
+            }}
+            className="flex items-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black rounded-xl transition-all shadow-lg shadow-emerald-500/10"
+          >
             <Plus size={20} />
-            <span>Manage Group</span>
+            <span>Enroll Student</span>
           </button>
         </div>
       </div>
@@ -409,41 +441,63 @@ export default function ClassDetailPage() {
                   <div className="glass-card p-12 text-center space-y-4">
                     <Users size={40} className="text-zinc-800 mx-auto" />
                     <p className="text-zinc-500">No students are currently enrolled in this class group.</p>
-                    <button className="text-emerald-400 text-xs font-black uppercase tracking-widest hover:text-emerald-300 transition-colors flex items-center gap-2 mx-auto">
+                    <button 
+                      onClick={() => {
+                        setIsEnrollModalOpen(true)
+                        fetchAllStudents()
+                      }}
+                      className="text-emerald-400 text-xs font-black uppercase tracking-widest hover:text-emerald-300 transition-colors flex items-center gap-2 mx-auto"
+                    >
                       <Plus size={14} /> Enroll Student
                     </button>
                   </div>
                 ) : (
-                  <div className="bg-zinc-950/40 border border-zinc-900 rounded-3xl overflow-hidden">
-                    <table className="w-full text-left">
-                      <thead>
-                        <tr className="border-b border-zinc-900 bg-zinc-950/60">
-                          <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest">Student</th>
-                          <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest">E-mail</th>
-                          <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-zinc-900">
-                        {students.map(student => (
-                          <tr key={student.uid} className="hover:bg-zinc-900/40 transition-colors group">
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center text-xs font-bold border border-emerald-500/20">
-                                  {student.name.charAt(0)}
-                                </div>
-                                <span className="text-sm font-bold text-zinc-200 group-hover:text-white transition-colors">{student.name}</span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 text-xs text-zinc-500">{student.email}</td>
-                            <td className="px-6 py-4 text-right">
-                              <button className="p-2 text-zinc-600 hover:text-white transition-colors">
-                                <MoreVertical size={16} />
-                              </button>
-                            </td>
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-center px-2">
+                      <h4 className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Enrolled Students</h4>
+                      <button 
+                        onClick={() => {
+                          setIsEnrollModalOpen(true)
+                          fetchAllStudents()
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-zinc-950 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all border border-emerald-500/20"
+                      >
+                        <Plus size={14} />
+                        Enroll Student
+                      </button>
+                    </div>
+
+                    <div className="bg-zinc-950/40 border border-zinc-900 rounded-3xl overflow-hidden">
+                      <table className="w-full text-left">
+                        <thead>
+                          <tr className="border-b border-zinc-900 bg-zinc-950/60">
+                            <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest">Student</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest">E-mail</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-right">Actions</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-900">
+                          {students.map(student => (
+                            <tr key={student.uid} className="hover:bg-zinc-900/40 transition-colors group">
+                              <td className="px-6 py-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center text-xs font-bold border border-emerald-500/20">
+                                    {student.name.charAt(0)}
+                                  </div>
+                                  <span className="text-sm font-bold text-zinc-200 group-hover:text-white transition-colors">{student.name}</span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-xs text-zinc-500">{student.email}</td>
+                              <td className="px-6 py-4 text-right">
+                                <button className="p-2 text-zinc-600 hover:text-white transition-colors">
+                                  <MoreVertical size={16} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
               </div>
@@ -504,6 +558,58 @@ export default function ClassDetailPage() {
                 Close
               </button>
             </footer>
+          </div>
+        </div>
+      )}
+
+      {/* Enrollment Modal */}
+      {isEnrollModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-2xl max-h-[80vh] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
+            <header className="p-6 border-b border-zinc-800 flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-bold text-white">Enroll Students</h3>
+                <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-1">{group?.name} • Select students from school</p>
+              </div>
+              <button onClick={() => setIsEnrollModalOpen(false)} className="text-zinc-500 hover:text-white transition-colors">
+                <X size={20} />
+              </button>
+            </header>
+
+            <div className="p-6 overflow-y-auto space-y-6">
+              <div className="glass-card p-2 flex items-center px-4 gap-3">
+                <Search size={14} className="text-zinc-600" />
+                <input 
+                  placeholder="Search school students..." 
+                  className="bg-transparent border-none focus:ring-0 text-xs text-zinc-400 w-full"
+                  value={studentSearchQuery}
+                  onChange={e => setStudentSearchQuery(e.target.value)}
+                />
+              </div>
+
+              <div className="grid gap-2">
+                {allStudents
+                  .filter(s => !group?.student_ids.includes(s.uid))
+                  .filter(s => s.name.toLowerCase().includes(studentSearchQuery.toLowerCase()))
+                  .map(student => (
+                  <div key={student.uid} className="glass-card p-3 flex items-center justify-between hover:border-emerald-500/30 transition-all">
+                     <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-500 text-xs font-bold border border-zinc-700">
+                          {student.name[0]}
+                        </div>
+                        <span className="text-sm font-bold text-zinc-400">{student.name}</span>
+                     </div>
+                     <button 
+                      onClick={() => handleEnrollStudent(student.uid)}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-zinc-950 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all border border-emerald-500/20"
+                     >
+                       <Plus size={14} />
+                       Enroll
+                     </button>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}
