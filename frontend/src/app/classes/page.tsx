@@ -15,7 +15,8 @@ import {
   ChevronRight,
   BookOpen,
   Filter,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from "lucide-react"
 import { useSchool } from "@/contexts/SchoolContext"
 import { cn } from "@/lib/utils"
@@ -108,6 +109,16 @@ export default function ClassesPage() {
     }
   }
 
+  const handleDeleteClass = async (uid: string, name: string) => {
+    if (!currentSchool || !confirm(`Are you sure you want to delete ${name}? This action cannot be undone.`)) return
+    try {
+      await api.delete(`/class-groups/${uid}`)
+      fetchData()
+    } catch (err: any) {
+      alert(err.message || "Error deleting class")
+    }
+  }
+
   const toggleSubject = (uid: string) => {
     setFormData(prev => ({
       ...prev,
@@ -196,7 +207,7 @@ export default function ClassesPage() {
                 .filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.grade?.includes(searchQuery))
                 .map(group => (
                 <div key={group.uid} className="glass-card flex flex-col hover:border-emerald-500/30 transition-all group overflow-hidden">
-                  <Link href={`/classes/${group.uid}`} className="p-6 flex-1 cursor-pointer">
+                  <div className="p-6 flex-1 cursor-pointer">
                     <div className="flex justify-between items-start mb-4">
                       <div className={cn(
                         "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
@@ -206,15 +217,29 @@ export default function ClassesPage() {
                       )}>
                         {group.is_regular ? "Regular Class" : "Special Group"}
                       </div>
-                      <div className="flex items-center gap-2 text-zinc-500">
-                        <Clock size={12} />
-                        <span className="text-[10px] font-bold uppercase">{group.shift}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 text-zinc-500 mr-2">
+                            <Clock size={12} />
+                            <span className="text-[10px] font-bold uppercase">{group.shift}</span>
+                        </div>
+                        <button 
+                            onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                handleDeleteClass(group.uid, group.name)
+                            }}
+                            className="p-1.5 text-zinc-700 hover:text-rose-500 transition-colors bg-zinc-950/50 rounded-lg border border-zinc-900 opacity-0 group-hover:opacity-100"
+                        >
+                            <Trash2 size={14} />
+                        </button>
                       </div>
                     </div>
 
-                    <h4 className="text-xl font-bold text-white mb-1 group-hover:text-emerald-400 transition-colors">
-                      {group.name}
-                    </h4>
+                    <Link href={`/classes/${group.uid}`}>
+                      <h4 className="text-xl font-bold text-white mb-1 group-hover:text-emerald-400 transition-colors">
+                        {group.name}
+                      </h4>
+                    </Link>
                     
                     {group.is_regular && (
                       <p className="text-xs text-zinc-400 font-medium">
@@ -247,7 +272,7 @@ export default function ClassesPage() {
                         </div>
                       )}
                     </div>
-                  </Link>
+                  </div>
 
                   <div className="p-4 bg-zinc-900/20 border-t border-zinc-800 flex justify-between items-center group-hover:bg-zinc-900/40 transition-colors">
                     <Link href={`/offerings`} className="text-[10px] font-black text-zinc-500 hover:text-white transition-colors flex items-center gap-1">
