@@ -28,16 +28,17 @@ class PurgeUserUseCase:
 
         try:
             # 3. Clean up Class Groups (Student lists)
-            groups = self.db.query(ClassGroupModel).filter(ClassGroupModel.student_ids.contains([user_id])).all()
-            for group in groups:
-                new_list = [s_id for s_id in group.student_ids if s_id != user_id]
-                group.student_ids = new_list
+            # Fetch groups where the user might be present (can be optimized but this is safe)
+            all_groups = self.db.query(ClassGroupModel).all()
+            for group in all_groups:
+                if group.student_ids and user_id in group.student_ids:
+                    group.student_ids = [s_id for s_id in group.student_ids if s_id != user_id]
             
             # 4. Clean up Subject Offerings (Teacher lists)
-            offerings = self.db.query(SubjectOfferingModel).filter(SubjectOfferingModel.teacher_ids.contains([user_id])).all()
-            for offering in offerings:
-                new_list = [t_id for t_id in offering.teacher_ids if t_id != user_id]
-                offering.teacher_ids = new_list
+            all_offerings = self.db.query(SubjectOfferingModel).all()
+            for offering in all_offerings:
+                if offering.teacher_ids and user_id in offering.teacher_ids:
+                    offering.teacher_ids = [t_id for t_id in offering.teacher_ids if t_id != user_id]
 
             # 5. Delete Enrollments (Grades are inside)
             self.db.query(EnrollmentModel).filter_by(student_id=user_id).delete()
@@ -54,4 +55,6 @@ class PurgeUserUseCase:
             self.db.commit()
         except Exception as e:
             self.db.rollback()
+            # Log the error for better debugging next time
+            print(f"CRITICAL ERROR in PurgeUserUseCase: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Error purging user data: {str(e)}")
