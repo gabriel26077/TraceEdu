@@ -303,33 +303,47 @@ export default function SubjectsPage() {
                         </div>
 
                         {expandedGrades.includes(gradeKey) && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-4">
+                          <div className="flex flex-col gap-1 p-2 bg-zinc-950/40">
                             {subjects.length > 0 ? subjects.map(subject => (
-                              <div key={subject.uid} className="p-4 bg-zinc-900/40 border border-zinc-800/50 rounded-xl hover:border-emerald-500/30 transition-all group relative">
-                                <div className="flex justify-between items-start">
-                                  <p className="text-sm font-bold text-zinc-200 group-hover:text-emerald-400 transition-colors">{subject.name}</p>
-                                  <div className="flex gap-1">
+                              <div key={subject.uid} className="flex items-center justify-between p-3 bg-zinc-900/40 border border-zinc-800/30 rounded-xl hover:border-emerald-500/30 transition-all group">
+                                <div className="flex items-center gap-4 flex-1 min-w-0">
+                                  <div className="w-8 h-8 bg-zinc-950 rounded-lg flex items-center justify-center border border-zinc-800 group-hover:border-emerald-500/30 transition-colors">
+                                    <BookOpen size={14} className="text-zinc-600 group-hover:text-emerald-500 transition-colors" />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <h4 className="text-sm font-bold text-zinc-200 group-hover:text-white transition-colors truncate">
+                                      {subject.name}
+                                    </h4>
+                                    {subject.description && (
+                                      <p className="text-[10px] text-zinc-600 truncate max-w-md italic">{subject.description}</p>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-6 shrink-0">
+                                  <div className="hidden sm:flex flex-col items-end">
+                                    <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">{subject.academic_units} Units</span>
+                                    <span className="text-[9px] text-zinc-700 font-bold uppercase tracking-tighter">Standard</span>
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-1">
                                     <button 
                                       onClick={() => openEditModal(subject)}
-                                      className="text-zinc-700 hover:text-emerald-400 p-1 transition-colors"
+                                      className="p-2 text-zinc-700 hover:text-emerald-400 hover:bg-emerald-500/5 rounded-lg transition-all"
                                     >
                                       <Edit2 size={14} />
                                     </button>
                                     <button 
                                       onClick={() => handleDeleteSubject(subject.uid, subject.name)}
-                                      className="text-zinc-700 hover:text-rose-500 p-1 transition-colors"
+                                      className="p-2 text-zinc-700 hover:text-rose-500 hover:bg-rose-500/5 rounded-lg transition-all"
                                     >
                                       <Trash2 size={14} />
                                     </button>
                                   </div>
                                 </div>
-                                <p className="text-[10px] text-zinc-500 mt-1 line-clamp-1">{subject.description || "No description."}</p>
-                                <div className="mt-3 flex items-center justify-between">
-                                  <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">{subject.academic_units} Units</span>
-                                </div>
                               </div>
                             )) : (
-                              <div className="col-span-full py-6 text-center text-zinc-700 text-xs italic">
+                              <div className="py-6 text-center text-zinc-700 text-xs italic">
                                 Empty grade. Import or add subjects.
                               </div>
                             )}
