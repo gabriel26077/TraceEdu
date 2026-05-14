@@ -111,11 +111,17 @@ export default function SubjectsPage() {
     e.preventDefault()
     if (!currentSchool) return
     
+    // Ensure grade is 'ALL' for livre subjects
+    const finalData = {
+      ...formData,
+      grade: formData.level === "livre" ? "" : formData.grade
+    }
+    
     try {
       if (editingSubject) {
-        await api.put(`/subjects/${editingSubject.uid}`, formData)
+        await api.put(`/subjects/${editingSubject.uid}`, finalData)
       } else {
-        await api.post(`/schools/${currentSchool.uid}/subjects`, formData)
+        await api.post(`/schools/${currentSchool.uid}/subjects`, finalData)
       }
       setIsCustomModalOpen(false)
       fetchSchoolSubjects()
@@ -541,13 +547,20 @@ export default function SubjectsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-[10px] font-bold text-zinc-500 uppercase mb-1.5 block">Level</label>
-                    <select 
-                      className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500/50 transition-all"
-                      value={formData.level}
-                      onChange={e => setFormData({...formData, level: e.target.value})}
-                    >
-                      {Object.entries(LEVEL_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                    </select>
+                      <select 
+                        className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500/50 transition-all"
+                        value={formData.level}
+                        onChange={e => {
+                          const newLevel = e.target.value
+                          setFormData({
+                            ...formData, 
+                            level: newLevel,
+                            grade: newLevel === "livre" ? "ALL" : formData.grade
+                          })
+                        }}
+                      >
+                        {Object.entries(LEVEL_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                      </select>
                   </div>
                   {formData.level !== "livre" && (
                     <div className="animate-in fade-in zoom-in-95 duration-300">

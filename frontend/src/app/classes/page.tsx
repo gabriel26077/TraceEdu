@@ -99,7 +99,11 @@ export default function ClassesPage() {
     }
 
     try {
-      await api.post(`/schools/${currentSchool.uid}/class-groups`, formData)
+      const payload = {
+        ...formData,
+        grade: formData.level === "livre" ? "" : formData.grade
+      }
+      await api.post(`/schools/${currentSchool.uid}/class-groups`, payload)
       setIsModalOpen(false)
       // Reset form
       setFormData({
@@ -348,16 +352,23 @@ export default function ClassesPage() {
                     <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-300">
                       <div>
                         <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5 block ml-1">Academic Level</label>
-                        <select 
-                          className="premium-input bg-zinc-950 appearance-none text-xs"
-                          value={formData.level}
-                          onChange={e => setFormData({...formData, level: e.target.value})}
-                        >
-                          <option value="fundamental_1">Fundamental 1</option>
-                          <option value="fundamental_2">Fundamental 2</option>
-                          <option value="ensino_medio">Ensino Médio</option>
-                          <option value="livre">Livre / Aberto</option>
-                        </select>
+                            <select 
+                              className="premium-input bg-zinc-950 appearance-none"
+                              value={formData.level}
+                              onChange={e => {
+                                const newLevel = e.target.value
+                                setFormData({
+                                  ...formData, 
+                                  level: newLevel,
+                                  grade: newLevel === "livre" ? "" : formData.grade
+                                })
+                              }}
+                            >
+                              <option value="fundamental_1">Fundamental 1</option>
+                              <option value="fundamental_2">Fundamental 2</option>
+                              <option value="ensino_medio">Ensino Médio</option>
+                              <option value="livre">Livre / Aberto</option>
+                            </select>
                       </div>
                       {formData.level !== "livre" && (
                         <div>
