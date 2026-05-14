@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { api } from "@/lib/api"
 import { 
   ClipboardList, 
@@ -53,6 +53,7 @@ interface ClassGroup {
 export default function OfferingsPage() {
   const { currentSchool } = useSchool()
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [offerings, setOfferings] = useState<Offering[]>([])
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [teachers, setTeachers] = useState<User[]>([])
@@ -155,9 +156,15 @@ export default function OfferingsPage() {
     try {
       await api.post(`/schools/${currentSchool.uid}/subject-offerings`, payload)
       alert("Subject offering created successfully!")
-      setFormData({ subject_id: "", period: "", class_group_id: "", teacher_ids: [] })
-      setIsModalOpen(false)
-      fetchData()
+      
+      const classIdFromUrl = searchParams.get("class_id")
+      if (classIdFromUrl) {
+        router.push(`/classes/${classIdFromUrl}`)
+      } else {
+        setFormData({ subject_id: "", period: "", class_group_id: "", teacher_ids: [] })
+        setIsModalOpen(false)
+        fetchData()
+      }
     } catch (err: any) {
       alert(err.message || "Error creating offering")
     }
