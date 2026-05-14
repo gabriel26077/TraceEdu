@@ -59,7 +59,7 @@ export default function TeacherOfferingPage() {
         setSubject(sub)
 
         // 3. Find Groups linked to this offering to get students
-        const allGroups = await api.get<any[]>(`/class-groups/school/${currentSchool.uid}`)
+        const allGroups = await api.get<any[]>(`/schools/${currentSchool.uid}/class-groups`)
         const linkedGroups = allGroups.filter(g => g.offering_ids.includes(off.uid))
         
         // 4. Get student IDs (union)

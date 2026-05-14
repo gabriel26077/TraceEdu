@@ -37,7 +37,7 @@ export default function Dashboard() {
           const [allOfferings, allSubjects, allGroups] = await Promise.all([
             api.get<any[]>(`/schools/${currentSchool.uid}/subject-offerings`),
             api.get<any[]>(`/schools/${currentSchool.uid}/subjects`),
-            api.get<any[]>(`/class-groups/school/${currentSchool.uid}`)
+            api.get<any[]>(`/schools/${currentSchool.uid}/class-groups`)
           ])
 
           const enriched = allOfferings
