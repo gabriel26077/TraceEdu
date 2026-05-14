@@ -7,3 +7,4 @@ from .subject_offering_repository import SQLAlchemySubjectOfferingRepository
 from .school_repository import SQLAlchemySchoolRepository
 from .membership_repository import SQLAlchemySchoolMemberRepository
 from .global_subject_repository import SQLAlchemyGlobalSubjectRepository
+from .grade_repository import SQLAlchemyGradeRepository
