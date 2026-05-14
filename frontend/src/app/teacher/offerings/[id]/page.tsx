@@ -142,24 +142,48 @@ export default function TeacherOfferingPage() {
 
       <div className="animate-in fade-in slide-in-from-top-2 duration-500">
         {activeTab === "students" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center px-2">
+              <h4 className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Enrolled Students</h4>
+            </div>
+            
             {students.length === 0 ? (
-              <div className="col-span-full glass-card p-20 text-center space-y-4">
+              <div className="glass-card p-20 text-center space-y-4">
                 <Users size={40} className="text-zinc-800 mx-auto" />
                 <p className="text-zinc-500">No students enrolled in this offering yet.</p>
               </div>
             ) : (
-              students.map(student => (
-                <div key={student.uid} className="glass-card p-5 flex items-center gap-4 hover:border-emerald-500/30 transition-all group">
-                  <div className="w-10 h-10 bg-zinc-900 rounded-xl flex items-center justify-center border border-zinc-800 text-zinc-600 group-hover:text-emerald-500 transition-colors">
-                    <GraduationCap size={18} />
-                  </div>
-                  <div>
-                    <h5 className="font-bold text-zinc-300 group-hover:text-white transition-colors">{student.name}</h5>
-                    <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-wider">{student.email}</p>
-                  </div>
-                </div>
-              ))
+              <div className="bg-zinc-950/40 border border-zinc-900 rounded-3xl overflow-hidden shadow-2xl">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b border-zinc-900 bg-zinc-950/60">
+                      <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest">Student</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest">E-mail</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-900">
+                    {students.map(student => (
+                      <tr key={student.uid} className="hover:bg-zinc-900/40 transition-colors group">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center text-xs font-bold border border-emerald-500/20">
+                              {student.name.charAt(0)}
+                            </div>
+                            <span className="text-sm font-bold text-zinc-200 group-hover:text-white transition-colors">{student.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-xs text-zinc-500 font-medium tracking-tight">{student.email}</td>
+                        <td className="px-6 py-4 text-right">
+                          <button className="p-2 text-zinc-600 hover:text-white transition-colors">
+                            <ChevronRight size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         )}
