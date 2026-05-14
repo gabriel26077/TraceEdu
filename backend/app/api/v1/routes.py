@@ -385,7 +385,8 @@ def list_subject_offerings(school_id: str, db: Session = Depends(get_db), curren
 def delete_subject_offering(uid: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     try:
         repository = SQLAlchemySubjectOfferingRepository(db)
-        use_case = DeleteOfferingUseCase(repository)
+        group_repo = SQLAlchemyClassGroupRepository(db)
+        use_case = DeleteOfferingUseCase(repository, group_repo)
         use_case.execute(uid)
         db.commit()
         return None
