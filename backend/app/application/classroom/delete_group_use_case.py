@@ -11,14 +11,6 @@ class DeleteGroupUseCase:
         if not group:
             raise Exception("Class group not found")
 
-        # 1. Unlink all subject offerings
-        # We need to find all offerings that belong to this school and have this class_group_id
-        # Actually, the most reliable way is to iterate over the group's own offering_ids
-        for offering_id in group.offering_ids:
-            offering = self.offering_repo.get_by_id(offering_id)
-            if offering and offering.class_group_id == uid:
-                offering.class_group_id = None
-                self.offering_repo.save(offering)
-
-        # 2. Delete the group itself
+        # 1. Delete the group itself
+        # (Offerings are independent, so removing the group automatically breaks the link stored in offering_ids)
         self.group_repo.delete(uid)
