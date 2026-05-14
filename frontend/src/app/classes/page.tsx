@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import { api } from "@/lib/api"
 import { 
   GraduationCap, 
@@ -199,7 +200,7 @@ export default function ClassesPage() {
                 .filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.grade?.includes(searchQuery))
                 .map(group => (
                 <div key={group.uid} className="glass-card flex flex-col hover:border-emerald-500/30 transition-all group overflow-hidden">
-                  <div className="p-6 flex-1">
+                  <Link href={`/classes/${group.uid}`} className="p-6 flex-1 cursor-pointer">
                     <div className="flex justify-between items-start mb-4">
                       <div className={cn(
                         "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
@@ -232,18 +233,14 @@ export default function ClassesPage() {
                           <div className="flex justify-between text-[10px] font-bold uppercase tracking-tight">
                             <span className="text-zinc-500">Academic Coverage</span>
                             <span className="text-emerald-400">
-                              {Math.round((group.offering_ids.length / group.required_subject_ids.length) * 100)}%
+                              {group.required_subject_ids.length > 0 ? Math.round((group.offering_ids.length / group.required_subject_ids.length) * 100) : 0}%
                             </span>
                           </div>
                           <div className="h-1 bg-zinc-900 rounded-full overflow-hidden flex gap-0.5">
                             {group.required_subject_ids.map(sid => {
-                              const isOffered = group.offering_ids.length > 0 // Simplification for UI demo
                               return <div key={sid} className={cn("h-full flex-1", group.offering_ids.includes(sid) ? "bg-emerald-500" : "bg-zinc-800")} />
                             })}
                           </div>
-                          <p className="text-[9px] text-zinc-600 italic">
-                            {group.offering_ids.length} of {group.required_subject_ids.length} subjects active
-                          </p>
                         </div>
                       )}
 
@@ -254,15 +251,15 @@ export default function ClassesPage() {
                         </div>
                       )}
                     </div>
-                  </div>
+                  </Link>
 
                   <div className="p-4 bg-zinc-900/20 border-t border-zinc-800 flex justify-between items-center group-hover:bg-zinc-900/40 transition-colors">
-                    <button className="text-[10px] font-black text-zinc-500 hover:text-white transition-colors flex items-center gap-1">
+                    <Link href={`/offerings`} className="text-[10px] font-black text-zinc-500 hover:text-white transition-colors flex items-center gap-1">
                       <Plus size={12} /> ADD OFFERING
-                    </button>
-                    <button className="p-2 rounded-lg bg-zinc-800/50 text-zinc-400 hover:text-emerald-400 transition-all">
+                    </Link>
+                    <Link href={`/classes/${group.uid}`} className="p-2 rounded-lg bg-zinc-800/50 text-zinc-400 hover:text-emerald-400 transition-all">
                       <ChevronRight size={16} />
-                    </button>
+                    </Link>
                   </div>
                 </div>
               ))}

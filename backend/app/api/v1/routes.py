@@ -37,6 +37,7 @@ from app.application.enrollment.create_enrollment_use_case import CreateEnrollme
 from app.application.enrollment.post_grade_use_case import PostGradeUseCase, PostGradeInput
 from app.application.classroom.create_group_use_case import CreateGroupUseCase, CreateGroupInput
 from app.application.classroom.list_groups_use_case import ListGroupsUseCase
+from app.application.classroom.get_group_use_case import GetGroupUseCase
 from app.application.classroom.enroll_student_use_case import EnrollStudentUseCase, EnrollStudentInput
 from app.application.classroom.get_class_report_use_case import GetClassGradesReportUseCase
 from app.application.school.register_school_use_case import RegisterSchoolUseCase, RegisterSchoolInput
@@ -464,6 +465,15 @@ def list_class_groups(school_id: str, db: Session = Depends(get_db), current_use
     repository = SQLAlchemyClassGroupRepository(db)
     use_case = ListGroupsUseCase(repository)
     return use_case.execute(school_id)
+
+@router.get("/class-groups/{uid}", response_model=ClassGroupResponse)
+def get_class_group(uid: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    repository = SQLAlchemyClassGroupRepository(db)
+    use_case = GetGroupUseCase(repository)
+    group = use_case.execute(uid)
+    if not group:
+        raise HTTPException(status_code=404, detail="Class group not found")
+    return group
 
 @router.post("/schools/{school_id}/class-groups/{group_id}/enroll-student", status_code=204)
 def enroll_student_in_group(school_id: str, group_id: str, request: EnrollStudentInGroupRequest, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_access)):
