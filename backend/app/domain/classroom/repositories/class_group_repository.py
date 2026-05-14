@@ -12,3 +12,6 @@ class ClassGroupRepository(ABC):
     @abstractmethod
     def list_by_school(self, school_id: str) -> List[ClassGroup]:
         pass
+    @abstractmethod
+    def delete(self, uid: str) -> None:
+        pass

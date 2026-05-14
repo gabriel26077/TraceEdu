@@ -37,6 +37,12 @@ class SQLAlchemyClassGroupRepository(ClassGroupRepository):
         models = self.session.query(ClassGroupModel).filter_by(school_id=school_id).all()
         return [self._to_entity(m) for m in models]
 
+    def delete(self, uid: str) -> None:
+        model = self.session.query(ClassGroupModel).filter_by(uid=uid).first()
+        if model:
+            self.session.delete(model)
+            self.session.flush()
+
     def _to_entity(self, model: ClassGroupModel) -> ClassGroup:
         return ClassGroup(
             uid=model.uid,
