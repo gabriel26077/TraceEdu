@@ -362,6 +362,14 @@ def list_subjects(school_id: str, db: Session = Depends(get_db), current_user = 
     use_case = ListSubjectsUseCase(repository)
     return use_case.execute(school_id)
 
+@router.get("/schools/{school_id}/subjects/{uid}", response_model=SubjectResponse)
+def get_subject(school_id: str, uid: str, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_access)):
+    repo = SQLAlchemySubjectRepository(db)
+    subject = repo.get_by_id(uid)
+    if not subject or subject.school_id != school_id:
+        raise HTTPException(status_code=404, detail="Subject not found")
+    return subject
+
 @router.post("/schools/{school_id}/subject-offerings", response_model=SubjectOfferingResponse, status_code=201)
 def create_subject_offering(school_id: str, offering_data: SubjectOfferingCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_admin)):
     try:
@@ -391,6 +399,14 @@ def list_subject_offerings(school_id: str, db: Session = Depends(get_db), curren
     repository = SQLAlchemySubjectOfferingRepository(db)
     use_case = ListOfferingsUseCase(repository)
     return use_case.execute(school_id)
+
+@router.get("/schools/{school_id}/subject-offerings/{uid}", response_model=SubjectOfferingResponse)
+def get_subject_offering(school_id: str, uid: str, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_access)):
+    repository = SQLAlchemySubjectOfferingRepository(db)
+    offering = repository.get_by_id(uid)
+    if not offering or offering.school_id != school_id:
+        raise HTTPException(status_code=404, detail="Subject offering not found")
+    return offering
 
 @router.delete("/subject-offerings/{uid}", status_code=204)
 def delete_subject_offering(uid: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
