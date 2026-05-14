@@ -69,16 +69,8 @@ export default function ClassesPage() {
       setClasses(classesData)
 
       // 2. Fetch School Subjects (to select required ones)
-      const groupedSubjects = await api.get<any>(`/schools/${currentSchool.uid}/subjects`)
-      const flatSubjects: Subject[] = []
-      Object.keys(groupedSubjects).forEach(level => {
-        Object.keys(groupedSubjects[level]).forEach(grade => {
-          groupedSubjects[level][grade].forEach((s: any) => {
-            flatSubjects.push({ uid: s.uid, name: s.name, level, grade })
-          })
-        })
-      })
-      setSchoolSubjects(flatSubjects)
+      const subjectsData = await api.get<Subject[]>(`/schools/${currentSchool.uid}/subjects`)
+      setSchoolSubjects(subjectsData)
     } catch (err) {
       console.error("Error fetching classes data:", err)
     } finally {
