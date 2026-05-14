@@ -53,6 +53,20 @@ class AccountModel(Base):
 
     user = relationship("UserModel", back_populates="account")
 
+class GradeModel(Base):
+    __tablename__ = "grades"
+    uid = Column(String, primary_key=True)
+    offering_id = Column(String, ForeignKey("subject_offerings.uid"), nullable=False)
+    student_id = Column(String, ForeignKey("users.uid"), nullable=False)
+    unit = Column(Integer, nullable=False)
+    assessment_number = Column(Integer, nullable=False)
+    value = Column(Float, nullable=False)
+    observations = Column(String, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint('offering_id', 'student_id', 'unit', 'assessment_number', name='_student_assessment_uc'),
+    )
+
 # Academic Entities (Always linked to a School)
 
 class GlobalSubjectModel(Base):

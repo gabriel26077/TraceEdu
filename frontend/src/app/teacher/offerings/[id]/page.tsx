@@ -46,6 +46,7 @@ export default function TeacherOfferingPage() {
   const [subject, setSubject] = useState<Subject | null>(null)
   const [students, setStudents] = useState<Student[]>([])
   const [teachers, setTeachers] = useState<any[]>([])
+  const [grades, setGrades] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<"members" | "grades" | "stats">("members")
   const [activeUnitTab, setActiveUnitTab] = useState(1)
@@ -71,6 +72,10 @@ export default function TeacherOfferingPage() {
         const offeringTeachers = await api.get<any[]>(`/schools/${currentSchool.uid}/subject-offerings/${params.id}/teachers`)
         setTeachers(offeringTeachers)
 
+        // 5. Fetch Grades
+        const offeringGrades = await api.get<any[]>(`/schools/${currentSchool.uid}/subject-offerings/${params.id}/grades`)
+        setGrades(offeringGrades)
+
       } catch (err) {
         console.error("Error fetching offering details:", err)
       } finally {
@@ -79,6 +84,45 @@ export default function TeacherOfferingPage() {
     }
     fetchData()
   }, [currentSchool, params.id])
+
+  const handleGradeChange = async (studentId: string, unit: number, av: number, value: string) => {
+    if (value === "" || !currentSchool) return
+    try {
+      const val = parseFloat(value.replace(",", "."))
+      if (isNaN(val)) return
+      
+      await api.post(`/schools/${currentSchool.uid}/subject-offerings/${offering!.uid}/students/${studentId}/grades`, {
+        unit,
+        assessment_number: av,
+        value: val
+      })
+      
+      setGrades(prev => {
+         const existing = prev.findIndex(g => g.student_id === studentId && g.unit === unit && g.assessment_number === av)
+         if (existing !== -1) {
+           const newGrades = [...prev]
+           newGrades[existing] = { ...newGrades[existing], value: val }
+           return newGrades
+         } else {
+           return [...prev, { student_id: studentId, unit, assessment_number: av, value: val }]
+         }
+      })
+    } catch (err) {
+      console.error("Error saving grade:", err)
+    }
+  }
+
+  const getGradeValue = (studentId: string, unit: number, av: number) => {
+    const grade = grades.find(g => g.student_id === studentId && g.unit === unit && g.assessment_number === av)
+    return grade ? grade.value.toString() : ""
+  }
+
+  const calculateUnitMean = (studentId: string, unit: number) => {
+    const unitGrades = grades.filter(g => g.student_id === studentId && g.unit === unit)
+    if (unitGrades.length === 0) return "--"
+    const sum = unitGrades.reduce((acc, g) => acc + g.value, 0)
+    return (sum / (subject?.assessments_per_unit || 1)).toFixed(1)
+  }
 
   if (loading) {
     return (
@@ -289,15 +333,20 @@ export default function TeacherOfferingPage() {
                              <td key={av} className="px-1 py-2">
                                 <div className="flex justify-center">
                                   <input 
-                                    type="number" 
+                                    type="text" 
+                                    inputMode="decimal"
                                     placeholder="0.0" 
+                                    defaultValue={getGradeValue(student.uid, activeUnitTab, av)}
+                                    onBlur={(e) => handleGradeChange(student.uid, activeUnitTab, av, e.target.value)}
                                     className="w-14 h-9 bg-zinc-900/30 border border-zinc-800/50 rounded-lg text-center text-xs font-bold text-white focus:outline-none focus:border-emerald-500/50 transition-all placeholder:text-zinc-800 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                   />
                                 </div>
                              </td>
                            ))}
                            <td className="px-6 py-2 text-right">
-                              <span className="text-[11px] font-black text-emerald-400 bg-emerald-500/5 px-2.5 py-1 rounded-md border border-emerald-500/10">--</span>
+                              <span className="text-[11px] font-black text-emerald-400 bg-emerald-500/5 px-2.5 py-1 rounded-md border border-emerald-500/10">
+                                {calculateUnitMean(student.uid, activeUnitTab)}
+                              </span>
                            </td>
                         </tr>
                       ))}

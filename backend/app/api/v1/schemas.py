@@ -48,9 +48,30 @@ class SubjectOfferingCreate(BaseModel):
 
 class SubjectOfferingResponse(BaseModel):
     uid: str
+    school_id: str
     subject_id: str
+    class_group_id: str
     period: str
     teacher_ids: List[str]
+    student_ids: List[str]
+
+    class Config:
+        from_attributes = True
+
+class GradeCreate(BaseModel):
+    unit: int
+    assessment_number: int
+    value: float
+    observations: Optional[str] = None
+
+class GradeResponse(BaseModel):
+    uid: str
+    offering_id: str
+    student_id: str
+    unit: int
+    assessment_number: int
+    value: float
+    observations: Optional[str] = None
 
     class Config:
         from_attributes = True

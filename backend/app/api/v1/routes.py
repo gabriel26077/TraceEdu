@@ -13,7 +13,8 @@ from app.infrastructure.persistence.postgresql import (
     SQLAlchemySubjectOfferingRepository,
     SQLAlchemySchoolRepository,
     SQLAlchemySchoolMemberRepository,
-    SQLAlchemyGlobalSubjectRepository
+    SQLAlchemyGlobalSubjectRepository,
+    SQLAlchemyGradeRepository
 )
 
 # Application Use Cases
@@ -35,6 +36,8 @@ from app.application.subject.list_offerings_use_case import ListOfferingsUseCase
 from app.application.subject.delete_offering_use_case import DeleteOfferingUseCase
 from app.application.enrollment.create_enrollment_use_case import CreateEnrollmentUseCase, CreateEnrollmentInput
 from app.application.enrollment.post_grade_use_case import PostGradeUseCase, PostGradeInput
+from app.application.academic.save_assessment_grade_use_case import SaveAssessmentGradeUseCase, SaveAssessmentGradeInput
+from app.application.academic.list_offering_grades_use_case import ListOfferingGradesUseCase
 from app.application.classroom.create_group_use_case import CreateGroupUseCase, CreateGroupInput
 from app.application.classroom.list_groups_use_case import ListGroupsUseCase
 from app.application.classroom.get_group_use_case import GetGroupUseCase
@@ -57,6 +60,7 @@ from .schemas import (
     UserCreate, UserResponse,
     SubjectCreate, SubjectResponse,
     SubjectOfferingCreate, SubjectOfferingResponse,
+    GradeCreate, GradeResponse,
     EnrollmentCreate, EnrollmentResponse,
     ClassGroupCreate, ClassGroupResponse,
     EnrollStudentInGroupRequest,
@@ -611,6 +615,35 @@ def get_class_report(school_id: str, group_id: str, offering_id: str, db: Sessio
         use_case = GetClassGradesReportUseCase(class_repo, enroll_repo, user_repo)
         return use_case.execute(group_id, offering_id)
     except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/schools/{school_id}/subject-offerings/{offering_id}/grades", response_model=List[GradeResponse])
+def list_offering_grades(school_id: str, offering_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_access)):
+    try:
+        repo = SQLAlchemyGradeRepository(db)
+        use_case = ListOfferingGradesUseCase(repo)
+        return use_case.execute(offering_id)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/schools/{school_id}/subject-offerings/{offering_id}/students/{student_id}/grades", response_model=GradeResponse)
+def post_grade_assessment(school_id: str, offering_id: str, student_id: str, grade_data: GradeCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_access)):
+    try:
+        repo = SQLAlchemyGradeRepository(db)
+        use_case = SaveAssessmentGradeUseCase(repo)
+        use_case_input = SaveAssessmentGradeInput(
+            offering_id=offering_id,
+            student_id=student_id,
+            unit=grade_data.unit,
+            assessment_number=grade_data.assessment_number,
+            value=grade_data.value,
+            observations=grade_data.observations
+        )
+        result = use_case.execute(use_case_input)
+        db.commit()
+        return result
+    except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/status")
