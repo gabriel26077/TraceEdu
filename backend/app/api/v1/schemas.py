@@ -23,6 +23,7 @@ class SubjectCreate(BaseModel):
     level: str
     grade: str
     academic_units: int
+    assessments_per_unit: int = 2
     offering_type: str
     description: Optional[str] = None
 
@@ -32,6 +33,7 @@ class SubjectResponse(BaseModel):
     level: str
     grade: str
     academic_units: int
+    assessments_per_unit: int
     offering_type: str
     description: Optional[str] = None
 

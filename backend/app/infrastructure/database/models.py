@@ -62,6 +62,7 @@ class GlobalSubjectModel(Base):
     level = Column(String, nullable=False)
     grade = Column(String, nullable=False)
     academic_units = Column(Integer, nullable=False, default=3)
+    assessments_per_unit = Column(Integer, nullable=False, default=2)
     description = Column(String, nullable=True)
     category = Column(String, nullable=True)
 
@@ -73,6 +74,7 @@ class SubjectModel(Base):
     level = Column(String, nullable=False)
     grade = Column(String, nullable=False) # e.g. "1", "2", "I"
     academic_units = Column(Integer, nullable=False)
+    assessments_per_unit = Column(Integer, nullable=False, default=2)
     offering_type = Column(String, nullable=False)
     description = Column(String, nullable=True)
     template_id = Column(String, nullable=True) # Ref to GlobalSubject

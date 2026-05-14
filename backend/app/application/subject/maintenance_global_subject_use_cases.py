@@ -4,7 +4,7 @@ class UpdateGlobalSubjectUseCase:
     def __init__(self, repository: GlobalSubjectRepository):
         self.repository = repository
 
-    def execute(self, uid: str, name: str, level: str, grade: str, academic_units: int, category: str = None, description: str = None):
+    def execute(self, uid: str, name: str, level: str, grade: str, academic_units: int, assessments_per_unit: int, category: str = None, description: str = None):
         subject = self.repository.get_by_id(uid)
         if not subject:
             raise Exception("Global subject not found")
@@ -13,6 +13,7 @@ class UpdateGlobalSubjectUseCase:
         subject.level = level
         subject.grade = grade
         subject.academic_units = academic_units
+        subject.assessments_per_unit = assessments_per_unit
         subject.category = category
         subject.description = description
         

@@ -6,13 +6,14 @@ class CreateGlobalSubjectUseCase:
     def __init__(self, repository: GlobalSubjectRepository):
         self.repository = repository
 
-    def execute(self, name: str, level: str, grade: str, academic_units: int = 3, category: str = None, description: str = None) -> GlobalSubject:
+    def execute(self, name: str, level: str, grade: str, academic_units: int = 3, assessments_per_unit: int = 2, category: str = None, description: str = None) -> GlobalSubject:
         new_subject = GlobalSubject(
             uid=str(uuid.uuid4()),
             name=name,
             level=level,
             grade=grade,
             academic_units=academic_units,
+            assessments_per_unit=assessments_per_unit,
             category=category,
             description=description
         )

@@ -18,6 +18,7 @@ class SQLAlchemySubjectRepository(SubjectRepository):
         model.level = subject.level
         model.grade = subject.grade
         model.academic_units = subject.academic_units
+        model.assessments_per_unit = subject.assessments_per_unit
         model.offering_type = subject.offering_type
         model.description = subject.description
         model.template_id = subject.template_id
@@ -41,6 +42,7 @@ class SQLAlchemySubjectRepository(SubjectRepository):
             level=model.level,
             grade=model.grade,
             academic_units=model.academic_units,
+            assessments_per_unit=model.assessments_per_unit,
             offering_type=model.offering_type,
             description=model.description,
             template_id=model.template_id

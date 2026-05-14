@@ -17,6 +17,7 @@ class SQLAlchemyGlobalSubjectRepository(GlobalSubjectRepository):
         model.level = subject.level
         model.grade = subject.grade
         model.academic_units = subject.academic_units
+        model.assessments_per_unit = subject.assessments_per_unit
         model.description = subject.description
         model.category = subject.category
         
@@ -32,6 +33,7 @@ class SQLAlchemyGlobalSubjectRepository(GlobalSubjectRepository):
             level=model.level,
             grade=model.grade,
             academic_units=model.academic_units,
+            assessments_per_unit=model.assessments_per_unit,
             description=model.description,
             category=model.category
         )
@@ -44,6 +46,7 @@ class SQLAlchemyGlobalSubjectRepository(GlobalSubjectRepository):
             level=m.level,
             grade=m.grade,
             academic_units=m.academic_units,
+            assessments_per_unit=m.assessments_per_unit,
             description=m.description,
             category=m.category
         ) for m in models]

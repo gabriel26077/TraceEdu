@@ -249,6 +249,7 @@ def create_global_subject(data: dict, db: Session = Depends(get_db), current_use
             level=data["level"],
             grade=data["grade"],
             academic_units=data.get("academic_units", 3),
+            assessments_per_unit=data.get("assessments_per_unit", 2),
             category=data.get("category"),
             description=data.get("description")
         )
@@ -273,6 +274,7 @@ def update_global_subject(uid: str, data: dict, db: Session = Depends(get_db), c
             level=data["level"],
             grade=data["grade"],
             academic_units=data["academic_units"],
+            assessments_per_unit=data.get("assessments_per_unit", 2),
             category=data.get("category"),
             description=data.get("description")
         )
@@ -323,6 +325,7 @@ def register_subject(school_id: str, subject_data: SubjectCreate, db: Session = 
             school_id=school_id, name=subject_data.name, level=subject_data.level,
             grade=subject_data.grade,
             academic_units=subject_data.academic_units,
+            assessments_per_unit=subject_data.assessments_per_unit,
             offering_type=subject_data.offering_type, description=subject_data.description
         )
         result = use_case.execute(use_case_input)
@@ -343,6 +346,7 @@ def update_subject(uid: str, subject_data: SubjectCreate, db: Session = Depends(
             level=subject_data.level,
             grade=subject_data.grade,
             academic_units=subject_data.academic_units,
+            assessments_per_unit=subject_data.assessments_per_unit,
             description=subject_data.description
         )
         db.commit()
