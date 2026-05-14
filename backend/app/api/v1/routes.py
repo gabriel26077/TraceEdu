@@ -460,7 +460,15 @@ def list_offering_teachers(school_id: str, uid: str, db: Session = Depends(get_d
         
     user_repo = SQLAlchemyUserRepository(db)
     teachers = [user_repo.get_by_id(tid) for tid in offering.teacher_ids]
-    return [t for t in teachers if t]
+    
+    return [
+        {
+            "uid": t.uid,
+            "name": t.name,
+            "email": str(t.email) if t.email else None,
+            "roles": [str(r) for r in t.roles]
+        } for t in teachers if t
+    ]
 
 @router.delete("/subject-offerings/{uid}", status_code=204)
 def delete_subject_offering(uid: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
