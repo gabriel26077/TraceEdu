@@ -76,11 +76,20 @@ export default function ClassDetailPage() {
       ])
 
       setGroup(groupData)
-      setAllSchoolOfferings(allOfferings.map(o => {
+      
+      const enrichedAll = allOfferings.map(o => {
         const sub = allSubjects.find(s => s.uid === o.subject_id)
-        return { ...o, subject_level: sub?.level }
-      }))
-      setOfferings(allOfferings.filter(o => groupData.offering_ids.includes(o.uid)))
+        const tNames = allUsers.filter(u => o.teacher_ids.includes(u.uid)).map(u => u.name)
+        return { 
+          ...o, 
+          subject_name: sub?.name || "Unknown Subject",
+          subject_level: sub?.level,
+          teacher_names: tNames
+        }
+      })
+
+      setAllSchoolOfferings(enrichedAll)
+      setOfferings(enrichedAll.filter(o => groupData.offering_ids.includes(o.uid)))
       setStudents(allUsers.filter(u => groupData.student_ids.includes(u.uid)))
     } catch (err) {
       console.error("Error fetching class detail:", err)
