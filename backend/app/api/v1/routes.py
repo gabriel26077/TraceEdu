@@ -47,7 +47,6 @@ from app.application.school.maintenance_use_cases import ArchiveSchoolUseCase, D
 from app.application.school.list_schools_use_case import ListSchoolsUseCase
 from app.application.user.manage_account_use_case import ManageAccountUseCase
 from app.application.user.list_global_users_use_case import ListGlobalUsersUseCase
-from app.application.user.delete_user_use_case import DeleteUserUseCase
 from app.infrastructure.security.auth_service import AuthService
 
 # Domain Policies
@@ -143,9 +142,17 @@ def list_platform_users(db: Session = Depends(get_db), _ = Depends(verify_platfo
     use_case = ListGlobalUsersUseCase(db)
     return use_case.execute()
 
+from app.application.user.purge_user_use_case import PurgeUserUseCase
+
 @router.delete("/platform/users/{user_id}", status_code=204)
 def delete_platform_user(user_id: str, db: Session = Depends(get_db), current_user = Depends(verify_platform_admin)):
-    use_case = DeleteUserUseCase(db)
+    use_case = PurgeUserUseCase(db)
+    use_case.execute(user_id, current_user.uid)
+    return None
+
+@router.delete("/schools/{school_id}/users/{user_id}", status_code=204)
+def delete_school_user(school_id: str, user_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_admin)):
+    use_case = PurgeUserUseCase(db)
     use_case.execute(user_id, current_user.uid)
     return None
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { api } from "@/lib/api"
-import { Users, Plus, Mail, Shield, Search, AlertCircle, X, User as UserIcon, GraduationCap } from "lucide-react"
+import { Users, Plus, Mail, Shield, Search, AlertCircle, X, User as UserIcon, GraduationCap, Trash2 } from "lucide-react"
 import { useSchool } from "@/contexts/SchoolContext"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -42,6 +42,18 @@ export default function StudentsPage() {
       console.error(err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDeleteStudent = async (studentId: string, studentName: string) => {
+    if (!currentSchool) return
+    if (!confirm(`CRITICAL: Are you sure you want to delete ${studentName}? This will permanently remove all enrollments, grades, and historical data for this student.`)) return
+    
+    try {
+      await api.delete(`/schools/${currentSchool.uid}/users/${studentId}`)
+      fetchStudents()
+    } catch (err: any) {
+      alert(err.message || "Error deleting student")
     }
   }
 
@@ -141,9 +153,15 @@ export default function StudentsPage() {
                     Enrolled
                   </span>
                 </td>
-                <td className="px-6 py-4 text-right space-x-3">
-                   <button className="text-xs font-bold text-zinc-600 hover:text-emerald-400 transition-colors">Academic History</button>
-                   <button className="text-xs font-bold text-zinc-600 hover:text-emerald-400 transition-colors">Edit</button>
+                <td className="px-6 py-4 text-right space-x-2">
+                   <button className="text-xs font-bold text-zinc-600 hover:text-emerald-400 transition-colors">History</button>
+                   <button 
+                    onClick={() => handleDeleteStudent(user.uid, user.name)}
+                    className="p-2 text-zinc-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all group/btn"
+                    title="Delete Student"
+                   >
+                     <Trash2 size={16} className="group-hover/btn:scale-110 transition-transform" />
+                   </button>
                 </td>
               </tr>
             ))}
