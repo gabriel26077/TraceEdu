@@ -64,10 +64,9 @@ export default function TeacherOfferingPage() {
         const offeringStudents = await api.get<Student[]>(`/schools/${currentSchool.uid}/subject-offerings/${params.id}/students`)
         setStudents(offeringStudents)
 
-        // 4. Fetch Teachers (using all school users for now to get details)
-        const allUsers = await api.get<any[]>(`/schools/${currentSchool.uid}/users`)
-        const filteredTeachers = allUsers.filter(u => off.teacher_ids.includes(u.uid))
-        setTeachers(filteredTeachers)
+        // 4. Fetch Teachers specifically for this offering
+        const offeringTeachers = await api.get<any[]>(`/schools/${currentSchool.uid}/subject-offerings/${params.id}/teachers`)
+        setTeachers(offeringTeachers)
 
       } catch (err) {
         console.error("Error fetching offering details:", err)
