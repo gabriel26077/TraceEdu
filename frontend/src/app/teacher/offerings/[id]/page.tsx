@@ -269,35 +269,35 @@ export default function TeacherOfferingPage() {
                       <tr className="border-b border-zinc-900 bg-zinc-950/60">
                          <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest sticky left-0 bg-zinc-950 z-10 min-w-[200px]">Estudante</th>
                          {Array.from({ length: subject?.assessments_per_unit || 0 }, (_, i) => i + 1).map(av => (
-                           <th key={av} className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-center">AV{av}</th>
+                           <th key={av} className="px-2 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-center w-20">AV{av}</th>
                          ))}
-                         <th className="px-6 py-4 text-[10px] font-black text-emerald-500 uppercase tracking-widest text-right">Média Unidade</th>
+                         <th className="px-6 py-4 text-[10px] font-black text-emerald-500 uppercase tracking-widest text-right w-32">Média</th>
                       </tr>
                    </thead>
                    <tbody className="divide-y divide-zinc-900">
                       {students.map(student => (
                         <tr key={student.uid} className="hover:bg-zinc-900/40 transition-colors group">
-                           <td className="px-6 py-4 sticky left-0 bg-zinc-950/40 backdrop-blur-md group-hover:bg-zinc-900/60 transition-colors z-10">
+                           <td className="px-6 py-3 sticky left-0 bg-zinc-950/40 backdrop-blur-md group-hover:bg-zinc-900/60 transition-colors z-10 border-r border-zinc-900/50">
                               <div className="flex items-center gap-3">
-                                 <div className="w-7 h-7 bg-zinc-900 text-zinc-500 rounded-lg flex items-center justify-center text-[10px] font-bold border border-zinc-800">
+                                 <div className="w-6 h-6 bg-emerald-500/10 text-emerald-500 rounded-md flex items-center justify-center text-[9px] font-black border border-emerald-500/20">
                                     {student.name.charAt(0)}
                                  </div>
-                                 <span className="text-xs font-bold text-zinc-300 group-hover:text-white transition-colors">{student.name}</span>
+                                 <span className="text-xs font-bold text-zinc-400 group-hover:text-white transition-colors truncate max-w-[150px]">{student.name}</span>
                               </div>
                            </td>
                            {Array.from({ length: subject?.assessments_per_unit || 0 }, (_, i) => i + 1).map(av => (
-                             <td key={av} className="px-6 py-4">
+                             <td key={av} className="px-1 py-2">
                                 <div className="flex justify-center">
                                   <input 
                                     type="number" 
-                                    placeholder="--" 
-                                    className="w-16 h-10 bg-zinc-900/50 border border-zinc-800 rounded-xl text-center text-sm font-bold text-white focus:outline-none focus:border-emerald-500/50 transition-all placeholder:text-zinc-800"
+                                    placeholder="0.0" 
+                                    className="w-14 h-9 bg-zinc-900/30 border border-zinc-800/50 rounded-lg text-center text-xs font-bold text-white focus:outline-none focus:border-emerald-500/50 transition-all placeholder:text-zinc-800 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                   />
                                 </div>
                              </td>
                            ))}
-                           <td className="px-6 py-4 text-right">
-                              <span className="text-sm font-black text-emerald-400 bg-emerald-500/5 px-3 py-1.5 rounded-lg border border-emerald-500/10">--</span>
+                           <td className="px-6 py-2 text-right">
+                              <span className="text-[11px] font-black text-emerald-400 bg-emerald-500/5 px-2.5 py-1 rounded-md border border-emerald-500/10">--</span>
                            </td>
                         </tr>
                       ))}
