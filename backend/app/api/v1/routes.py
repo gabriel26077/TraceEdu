@@ -451,6 +451,17 @@ def list_offering_students(school_id: str, uid: str, db: Session = Depends(get_d
             
     return students
 
+@router.get("/schools/{school_id}/subject-offerings/{uid}/teachers", response_model=List[UserResponse])
+def list_offering_teachers(school_id: str, uid: str, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_access)):
+    off_repo = SQLAlchemySubjectOfferingRepository(db)
+    offering = off_repo.get_by_id(uid)
+    if not offering or offering.school_id != school_id:
+        raise HTTPException(status_code=404, detail="Subject offering not found")
+        
+    user_repo = SQLAlchemyUserRepository(db)
+    teachers = [user_repo.get_by_id(tid) for tid in offering.teacher_ids]
+    return [t for t in teachers if t]
+
 @router.delete("/subject-offerings/{uid}", status_code=204)
 def delete_subject_offering(uid: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     try:
