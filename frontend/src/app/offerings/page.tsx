@@ -76,17 +76,9 @@ export default function OfferingsPage() {
     if (!currentSchool) return
     setLoading(true)
     try {
-      // 1. Fetch subjects (need to flatten them)
-      const groupedSubjects = await api.get<any>(`/schools/${currentSchool.uid}/subjects`)
-      const flatSubjects: Subject[] = []
-      Object.keys(groupedSubjects).forEach(level => {
-        Object.keys(groupedSubjects[level]).forEach(grade => {
-          groupedSubjects[level][grade].forEach((s: any) => {
-            flatSubjects.push({ uid: s.uid, name: s.name, level, grade })
-          })
-        })
-      })
-      setSubjects(flatSubjects)
+      // 1. Fetch subjects
+      const subjectsData = await api.get<Subject[]>(`/schools/${currentSchool.uid}/subjects`)
+      setSubjects(subjectsData)
 
       // 2. Fetch users (teachers)
       const users = await api.get<User[]>(`/schools/${currentSchool.uid}/users`)
@@ -98,7 +90,7 @@ export default function OfferingsPage() {
       // Enrich offerings with subject names and teacher info
       const enriched = offeringsData.map(off => ({
         ...off,
-        subject_name: flatSubjects.find(s => s.uid === off.subject_id)?.name || "Unknown Subject",
+        subject_name: subjectsData.find((s: Subject) => s.uid === off.subject_id)?.name || "Unknown Subject",
         teachers: users.filter(u => off.teacher_ids.includes(u.uid))
       }))
       
