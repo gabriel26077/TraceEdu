@@ -23,7 +23,7 @@ class SubjectCreate(BaseModel):
     level: str
     grade: str
     academic_units: int
-    assessments_per_unit: int = 2
+    assessments_per_unit: int = 3
     offering_type: str
     description: Optional[str] = None
 

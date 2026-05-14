@@ -8,6 +8,6 @@ class GlobalSubject:
     level: str  # e.g., "fundamental_1", "fundamental_2", "ensino_medio"
     grade: str  # e.g., "1", "2", "I", "II"
     academic_units: int = 3
-    assessments_per_unit: int = 2
+    assessments_per_unit: int = 3
     description: Optional[str] = None
     category: Optional[str] = None # e.g., "Mathematics", "Language"
