@@ -16,8 +16,14 @@ class SQLAlchemyClassGroupRepository(ClassGroupRepository):
         model.school_id = group.school_id
         model.name = group.name
         model.shift = group.shift
+        model.period = group.period
+        model.is_regular = group.is_regular
+        model.level = group.level
+        model.grade = group.grade
+        model.notes = group.notes
         model.student_ids = group.student_ids
-        model.base_subject_ids = group.base_subject_offering_ids
+        model.offering_ids = group.offering_ids
+        model.required_subject_ids = group.required_subject_ids
         
         self.session.add(model)
         self.session.flush()
@@ -37,6 +43,12 @@ class SQLAlchemyClassGroupRepository(ClassGroupRepository):
             school_id=model.school_id,
             name=model.name,
             shift=model.shift,
+            period=model.period,
+            is_regular=model.is_regular,
+            level=model.level,
+            grade=model.grade,
+            notes=model.notes,
             student_ids=model.student_ids,
-            base_subject_offering_ids=model.base_subject_ids
+            offering_ids=model.offering_ids,
+            required_subject_ids=model.required_subject_ids
         )

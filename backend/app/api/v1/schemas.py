@@ -68,14 +68,26 @@ class EnrollmentResponse(BaseModel):
 class ClassGroupCreate(BaseModel):
     name: str
     shift: str
-    base_offering_ids: List[str]
+    period: str
+    is_regular: bool = False
+    level: Optional[str] = None
+    grade: Optional[str] = None
+    notes: Optional[str] = None
+    offering_ids: List[str] = []
+    required_subject_ids: List[str] = []
 
 class ClassGroupResponse(BaseModel):
     uid: str
     name: str
     shift: str
+    period: str
+    is_regular: bool
+    level: Optional[str] = None
+    grade: Optional[str] = None
+    notes: Optional[str] = None
     student_ids: List[str]
-    base_offering_ids: List[str]
+    offering_ids: List[str]
+    required_subject_ids: List[str]
 
     class Config:
         from_attributes = True

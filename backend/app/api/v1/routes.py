@@ -36,6 +36,7 @@ from app.application.subject.delete_offering_use_case import DeleteOfferingUseCa
 from app.application.enrollment.create_enrollment_use_case import CreateEnrollmentUseCase, CreateEnrollmentInput
 from app.application.enrollment.post_grade_use_case import PostGradeUseCase, PostGradeInput
 from app.application.classroom.create_group_use_case import CreateGroupUseCase, CreateGroupInput
+from app.application.classroom.list_groups_use_case import ListGroupsUseCase
 from app.application.classroom.enroll_student_use_case import EnrollStudentUseCase, EnrollStudentInput
 from app.application.classroom.get_class_report_use_case import GetClassGradesReportUseCase
 from app.application.school.register_school_use_case import RegisterSchoolUseCase, RegisterSchoolInput
@@ -440,8 +441,16 @@ def create_class_group(school_id: str, group_data: ClassGroupCreate, db: Session
         repository = SQLAlchemyClassGroupRepository(db)
         use_case = CreateGroupUseCase(repository)
         use_case_input = CreateGroupInput(
-            school_id=school_id, name=group_data.name, shift=group_data.shift,
-            base_offering_ids=group_data.base_offering_ids
+            school_id=school_id, 
+            name=group_data.name, 
+            shift=group_data.shift,
+            period=group_data.period,
+            is_regular=group_data.is_regular,
+            level=group_data.level,
+            grade=group_data.grade,
+            notes=group_data.notes,
+            offering_ids=group_data.offering_ids,
+            required_subject_ids=group_data.required_subject_ids
         )
         result = use_case.execute(use_case_input)
         db.commit()
@@ -449,6 +458,12 @@ def create_class_group(school_id: str, group_data: ClassGroupCreate, db: Session
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/schools/{school_id}/class-groups", response_model=List[ClassGroupResponse])
+def list_class_groups(school_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_access)):
+    repository = SQLAlchemyClassGroupRepository(db)
+    use_case = ListGroupsUseCase(repository)
+    return use_case.execute(school_id)
 
 @router.post("/schools/{school_id}/class-groups/{group_id}/enroll-student", status_code=204)
 def enroll_student_in_group(school_id: str, group_id: str, request: EnrollStudentInGroupRequest, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_access)):

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Date, JSON, Float, UniqueConstraint
+from sqlalchemy import Column, Integer, String, ForeignKey, Date, JSON, Float, UniqueConstraint, Boolean, Text
 from sqlalchemy.orm import relationship, declarative_base
 
 Base = declarative_base()
@@ -83,8 +83,14 @@ class ClassGroupModel(Base):
     school_id = Column(String, ForeignKey("schools.uid"), nullable=False)
     name = Column(String, nullable=False)
     shift = Column(String, nullable=False)
+    period = Column(String, nullable=False)
+    is_regular = Column(Boolean, default=False)
+    level = Column(String, nullable=True)
+    grade = Column(String, nullable=True)
+    notes = Column(Text, nullable=True)
     student_ids = Column(JSON, default=[]) # Refs to User IDs
-    base_subject_ids = Column(JSON, default=[])
+    offering_ids = Column(JSON, default=[]) # Refs to SubjectOffering IDs
+    required_subject_ids = Column(JSON, default=[]) # Refs to Subject IDs
 
 class SubjectOfferingModel(Base):
     __tablename__ = "subject_offerings"
