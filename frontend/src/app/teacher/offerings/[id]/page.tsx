@@ -32,6 +32,7 @@ interface Offering {
   uid: string
   subject_id: string
   period: string
+  teacher_ids: string[]
 }
 
 export default function TeacherOfferingPage() {
@@ -42,8 +43,9 @@ export default function TeacherOfferingPage() {
   const [offering, setOffering] = useState<Offering | null>(null)
   const [subject, setSubject] = useState<Subject | null>(null)
   const [students, setStudents] = useState<Student[]>([])
+  const [teachers, setTeachers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<"students" | "grades" | "stats">("students")
+  const [activeTab, setActiveTab] = useState<"members" | "grades" | "stats">("members")
 
   useEffect(() => {
     async function fetchData() {
@@ -61,6 +63,11 @@ export default function TeacherOfferingPage() {
         // 3. Fetch Enrolled Students for this offering
         const offeringStudents = await api.get<Student[]>(`/schools/${currentSchool.uid}/subject-offerings/${params.id}/students`)
         setStudents(offeringStudents)
+
+        // 4. Fetch Teachers (using all school users for now to get details)
+        const allUsers = await api.get<any[]>(`/schools/${currentSchool.uid}/users`)
+        const filteredTeachers = allUsers.filter(u => off.teacher_ids.includes(u.uid))
+        setTeachers(filteredTeachers)
 
       } catch (err) {
         console.error("Error fetching offering details:", err)
@@ -120,7 +127,7 @@ export default function TeacherOfferingPage() {
       {/* Tabs */}
       <div className="flex gap-2 p-1 bg-zinc-900/50 border border-zinc-800 rounded-2xl w-fit">
         {[
-          { id: "students", label: "Students", icon: Users },
+          { id: "members", label: "Integrantes", icon: Users },
           { id: "grades", label: "Grades & Assessment", icon: FileText },
           { id: "stats", label: "Statistics", icon: TrendingUp }
         ].map((tab: any) => (
@@ -141,50 +148,92 @@ export default function TeacherOfferingPage() {
       </div>
 
       <div className="animate-in fade-in slide-in-from-top-2 duration-500">
-        {activeTab === "students" && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center px-2">
-              <h4 className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Enrolled Students</h4>
-            </div>
-            
-            {students.length === 0 ? (
-              <div className="glass-card p-20 text-center space-y-4">
-                <Users size={40} className="text-zinc-800 mx-auto" />
-                <p className="text-zinc-500">No students enrolled in this offering yet.</p>
+        {activeTab === "members" && (
+          <div className="space-y-12">
+            {/* Teachers Section */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center px-2">
+                <h4 className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Professores</h4>
+                <span className="text-[10px] bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-500/20 font-bold">{teachers.length}</span>
               </div>
-            ) : (
+              
               <div className="bg-zinc-950/40 border border-zinc-900 rounded-3xl overflow-hidden shadow-2xl">
                 <table className="w-full text-left">
                   <thead>
                     <tr className="border-b border-zinc-900 bg-zinc-950/60">
-                      <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest">Student</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest">Docente</th>
                       <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest">E-mail</th>
-                      <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-right">Actions</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-right">Cargo</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-900">
-                    {students.map(student => (
-                      <tr key={student.uid} className="hover:bg-zinc-900/40 transition-colors group">
+                    {teachers.map(teacher => (
+                      <tr key={teacher.uid} className="hover:bg-zinc-900/40 transition-colors group">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center text-xs font-bold border border-emerald-500/20">
-                              {student.name.charAt(0)}
+                            <div className="w-8 h-8 bg-indigo-500/10 text-indigo-500 rounded-full flex items-center justify-center text-xs font-bold border border-indigo-500/20">
+                              {teacher.name.charAt(0)}
                             </div>
-                            <span className="text-sm font-bold text-zinc-200 group-hover:text-white transition-colors">{student.name}</span>
+                            <span className="text-sm font-bold text-zinc-200 group-hover:text-white transition-colors">{teacher.name}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-xs text-zinc-500 font-medium tracking-tight">{student.email}</td>
+                        <td className="px-6 py-4 text-xs text-zinc-500 font-medium tracking-tight">{teacher.email}</td>
                         <td className="px-6 py-4 text-right">
-                          <button className="p-2 text-zinc-600 hover:text-white transition-colors">
-                            <ChevronRight size={16} />
-                          </button>
+                           <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">Professor Titular</span>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            )}
+            </div>
+
+            {/* Students Section */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center px-2">
+                <h4 className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Estudantes</h4>
+                <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20 font-bold">{students.length}</span>
+              </div>
+              
+              {students.length === 0 ? (
+                <div className="glass-card p-20 text-center space-y-4">
+                  <Users size={40} className="text-zinc-800 mx-auto" />
+                  <p className="text-zinc-500">No students enrolled in this offering yet.</p>
+                </div>
+              ) : (
+                <div className="bg-zinc-950/40 border border-zinc-900 rounded-3xl overflow-hidden shadow-2xl">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="border-b border-zinc-900 bg-zinc-950/60">
+                        <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest">Aluno</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest">E-mail</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-widest text-right">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-900">
+                      {students.map(student => (
+                        <tr key={student.uid} className="hover:bg-zinc-900/40 transition-colors group">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center text-xs font-bold border border-emerald-500/20">
+                                {student.name.charAt(0)}
+                              </div>
+                              <span className="text-sm font-bold text-zinc-200 group-hover:text-white transition-colors">{student.name}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-xs text-zinc-500 font-medium tracking-tight">{student.email}</td>
+                          <td className="px-6 py-4 text-right">
+                            <button className="p-2 text-zinc-600 hover:text-white transition-colors">
+                              <ChevronRight size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
