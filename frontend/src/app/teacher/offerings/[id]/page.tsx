@@ -505,14 +505,14 @@ export default function TeacherOfferingPage() {
                 <span className="text-xs text-zinc-600 mb-1">%</span>
               </div>
             </div>
-            <div className="glass-card p-6 space-y-4 text-center flex flex-col justify-center items-center opacity-50">
-               <AlertCircle size={24} className="text-zinc-700 mb-2" />
-               <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Insights pending data</p>
+            <div className="glass-card p-6 space-y-4 text-center flex flex-col justify-center items-center opacity-50 border-dashed">
+              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">More Stats</p>
+              <p className="text-[9px] font-bold text-zinc-700 uppercase">Coming soon</p>
             </div>
           </div>
         )}
         {activeTab === "stats" && (
-          <div className="space-y-16 pb-20">
+          <div className="space-y-16 pb-20 mt-12">
             {stats ? (
               stats.units.map((unit, uIdx) => (
                 <div key={uIdx} className="space-y-6">
