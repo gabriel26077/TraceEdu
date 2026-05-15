@@ -22,12 +22,16 @@ class RegisterUserUseCase:
         self.member_repo = member_repo
 
     def execute(self, input: RegisterUserInput) -> User:
+        email = input.email if input.email and input.email.strip() else None
+        cpf = input.cpf if input.cpf and input.cpf.strip() else None
+        birthdate = input.birthdate if input.birthdate and input.birthdate.strip() else None
+
         user = User(
             uid=str(uuid.uuid4()),
             name=input.name,
-            email=input.email,
-            cpf=input.cpf,
-            birthdate=input.birthdate
+            email=email,
+            cpf=cpf,
+            birthdate=birthdate
         )
         self.repository.save(user)
         
