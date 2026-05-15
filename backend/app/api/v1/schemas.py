@@ -25,6 +25,20 @@ class BulkUsersImport(BaseModel):
     raw_csv: str
     roles: List[str] = ["student"]
 
+class AssessmentStats(BaseModel):
+    mean: float
+    stddev: float
+    histogram: List[int] # 10 bins: [0-1), [1-2), ..., [9-10]
+
+class UnitStats(BaseModel):
+    assessments: List[AssessmentStats]
+    mean: float
+    stddev: float
+    histogram: List[int]
+
+class OfferingStats(BaseModel):
+    units: List[UnitStats]
+
 class SubjectCreate(BaseModel):
     name: str
     level: str

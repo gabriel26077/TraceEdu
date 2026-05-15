@@ -24,6 +24,31 @@ interface Student {
   email: string
 }
 
+interface Grade {
+  uid: string
+  student_id: string
+  unit: number
+  assessment_number: number
+  value: number
+}
+
+interface AssessmentStats {
+  mean: number
+  stddev: number
+  histogram: number[]
+}
+
+interface UnitStats {
+  assessments: AssessmentStats[]
+  mean: number
+  stddev: number
+  histogram: number[]
+}
+
+interface OfferingStats {
+  units: UnitStats[]
+}
+
 interface Subject {
   uid: string
   name: string
@@ -47,45 +72,52 @@ export default function TeacherOfferingPage() {
   const [subject, setSubject] = useState<Subject | null>(null)
   const [students, setStudents] = useState<Student[]>([])
   const [teachers, setTeachers] = useState<any[]>([])
-  const [grades, setGrades] = useState<any[]>([])
+  const [grades, setGrades] = useState<Grade[]>([])
+  const [stats, setStats] = useState<OfferingStats | null>(null)
   const [pendingGrades, setPendingGrades] = useState<Record<string, number>>({})
   const [isSaving, setIsSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<"members" | "grades" | "stats">("members")
   const [activeUnitTab, setActiveUnitTab] = useState(1)
 
-  useEffect(() => {
-    async function fetchData() {
-      if (!currentSchool || !params.id) return
-      setLoading(true)
-      try {
-        // 1. Fetch Offering
-        const off = await api.get<Offering>(`/schools/${currentSchool.uid}/subject-offerings/${params.id}`)
-        setOffering(off)
+  async function fetchData() {
+    if (!currentSchool || !params.id) return
+    setLoading(true)
+    try {
+      const off = await api.get<Offering>(`/schools/${currentSchool.uid}/subject-offerings/${params.id}`)
+      setOffering(off)
 
-        // 2. Fetch Subject
-        const sub = await api.get<Subject>(`/schools/${currentSchool.uid}/subjects/${off.subject_id}`)
-        setSubject(sub)
+      const sub = await api.get<Subject>(`/schools/${currentSchool.uid}/subjects/${off.subject_id}`)
+      setSubject(sub)
 
-        // 3. Fetch Enrolled Students for this offering
-        const offeringStudents = await api.get<Student[]>(`/schools/${currentSchool.uid}/subject-offerings/${params.id}/students`)
-        setStudents(offeringStudents)
+      const offeringStudents = await api.get<Student[]>(`/schools/${currentSchool.uid}/subject-offerings/${params.id}/students`)
+      setStudents(offeringStudents)
 
-        // 4. Fetch Teachers specifically for this offering
-        const offeringTeachers = await api.get<any[]>(`/schools/${currentSchool.uid}/subject-offerings/${params.id}/teachers`)
-        setTeachers(offeringTeachers)
+      const offeringTeachers = await api.get<any[]>(`/schools/${currentSchool.uid}/subject-offerings/${params.id}/teachers`)
+      setTeachers(offeringTeachers)
 
-        // 5. Fetch Grades
-        const offeringGrades = await api.get<any[]>(`/schools/${currentSchool.uid}/subject-offerings/${params.id}/grades`)
-        setGrades(offeringGrades)
-
-      } catch (err) {
-        console.error("Error fetching offering details:", err)
-      } finally {
-        setLoading(false)
-      }
+      const offeringGrades = await api.get<Grade[]>(`/schools/${currentSchool.uid}/subject-offerings/${params.id}/grades`)
+      setGrades(offeringGrades)
+    } catch (err: any) {
+      console.error("Error fetching data:", err)
+    } finally {
+      setLoading(false)
     }
+  }
+
+  async function fetchStats() {
+    if (!currentSchool || !params.id) return
+    try {
+      const data = await api.get<OfferingStats>(`/schools/${currentSchool.uid}/subject-offerings/${params.id}/stats`)
+      setStats(data)
+    } catch (err) {
+      console.error("Error fetching stats:", err)
+    }
+  }
+
+  useEffect(() => {
     fetchData()
+    fetchStats()
   }, [currentSchool, params.id])
 
   const handleGradeChange = (studentId: string, unit: number, av: number, value: string, target?: HTMLInputElement) => {
@@ -151,6 +183,7 @@ export default function TeacherOfferingPage() {
       const offeringGrades = await api.get<any[]>(`/schools/${currentSchool.uid}/subject-offerings/${params.id}/grades`)
       setGrades(offeringGrades)
       setPendingGrades({})
+      fetchStats()
     } catch (err) {
       console.error("Error saving grades:", err)
       alert("Erro ao lançar notas.")
@@ -476,6 +509,131 @@ export default function TeacherOfferingPage() {
                <AlertCircle size={24} className="text-zinc-700 mb-2" />
                <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Insights pending data</p>
             </div>
+          </div>
+        )}
+        {activeTab === "stats" && (
+          <div className="space-y-16 pb-20">
+            {stats ? (
+              stats.units.map((unit, uIdx) => (
+                <div key={uIdx} className="space-y-6">
+                  <div className="flex items-center gap-4 px-2 mb-8">
+                    <h3 className="text-xl font-black text-white flex items-center gap-2">
+                      <div className="w-8 h-8 bg-emerald-500 text-zinc-950 rounded-lg flex items-center justify-center text-sm shadow-lg shadow-emerald-500/20">
+                        {uIdx + 1}
+                      </div>
+                      Unidade {uIdx + 1}
+                    </h3>
+                    <div className="h-px flex-1 bg-zinc-900" />
+                  </div>
+
+                  <div className="space-y-4">
+                    {unit.assessments.map((ass, aIdx) => (
+                      <div key={aIdx} className="glass-card p-6 flex flex-col md:flex-row gap-8 items-center hover:border-zinc-700 transition-all group">
+                        <div className="w-full md:w-48 space-y-1">
+                          <h4 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Avaliação {aIdx + 1}</h4>
+                          <div className="flex items-baseline gap-2">
+                            <p className="text-3xl font-black text-white">{ass.mean.toFixed(1)}</p>
+                            <span className="text-[10px] font-bold text-zinc-600">MÉDIA</span>
+                          </div>
+                          <p className="text-xs font-bold text-zinc-500 flex items-center gap-1">
+                            <span className="text-zinc-700">±</span> {ass.stddev.toFixed(2)} <span className="text-[9px] text-zinc-700 uppercase">DP</span>
+                          </p>
+                        </div>
+
+                        <div className="flex-1 w-full space-y-2">
+                          <div className="flex items-end justify-between gap-1 h-16">
+                            {ass.histogram.map((count, i) => {
+                                const max = Math.max(...ass.histogram, 1)
+                                const height = (count / max) * 100
+                                return (
+                                    <div 
+                                        key={i} 
+                                        className="flex-1 bg-zinc-800/30 rounded-t-sm relative group/bar"
+                                        style={{ height: "100%" }}
+                                    >
+                                        <div 
+                                            className="absolute bottom-0 left-0 right-0 bg-emerald-500/30 group-hover/bar:bg-emerald-500/50 transition-all rounded-t-sm"
+                                            style={{ height: `${height}%` }}
+                                        />
+                                        <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover/bar:opacity-100 transition-all pointer-events-none bg-zinc-800 text-[10px] font-bold text-white px-2 py-1 rounded border border-zinc-700 whitespace-nowrap z-20 shadow-2xl">
+                                            {count} alunos
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                          </div>
+                          <div className="flex justify-between text-[9px] font-black text-zinc-700 uppercase tracking-widest px-1">
+                            <span>0.0</span>
+                            <span>2.5</span>
+                            <span>5.0</span>
+                            <span>7.5</span>
+                            <span>10.0</span>
+                          </div>
+                        </div>
+                        
+                        <div className="hidden lg:flex items-center gap-4 text-zinc-800 group-hover:text-zinc-700 transition-colors">
+                           <TrendingUp size={40} />
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Unit Summary Row */}
+                    <div className="glass-card p-8 flex flex-col md:flex-row gap-12 items-center border-emerald-500/20 bg-emerald-500/[0.03] mt-8 relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                         <TrendingUp size={120} />
+                      </div>
+
+                      <div className="w-full md:w-56 space-y-1 relative z-10">
+                        <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Resumo Unidade</h4>
+                        <div className="flex items-baseline gap-2">
+                          <p className="text-5xl font-black text-white">{unit.mean.toFixed(1)}</p>
+                          <span className="text-xs font-bold text-emerald-500/50">GERAL</span>
+                        </div>
+                        <p className="text-sm font-bold text-emerald-400/60 flex items-center gap-1">
+                          <span className="text-emerald-500/30">±</span> {unit.stddev.toFixed(2)} <span className="text-[10px] uppercase">DESVIO</span>
+                        </p>
+                      </div>
+
+                      <div className="flex-1 w-full space-y-3 relative z-10">
+                        <div className="flex items-end justify-between gap-1 h-20">
+                          {unit.histogram.map((count, i) => {
+                              const max = Math.max(...unit.histogram, 1)
+                              const height = (count / max) * 100
+                              return (
+                                  <div 
+                                      key={i} 
+                                      className="flex-1 bg-emerald-500/5 rounded-t-sm relative group/bar"
+                                      style={{ height: "100%" }}
+                                  >
+                                      <div 
+                                          className="absolute bottom-0 left-0 right-0 bg-emerald-500/50 group-hover/bar:bg-emerald-500 transition-all rounded-t-sm"
+                                          style={{ height: `${height}%` }}
+                                      />
+                                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover/bar:opacity-100 transition-all pointer-events-none bg-emerald-500 text-[10px] font-black text-zinc-950 px-2 py-1 rounded whitespace-nowrap z-20 shadow-xl">
+                                          {count} alunos
+                                      </div>
+                                  </div>
+                              )
+                          })}
+                        </div>
+                        <div className="flex justify-between text-[10px] font-black text-emerald-500/40 uppercase tracking-widest px-2">
+                          <span>0.0</span>
+                          <span>2.5</span>
+                          <span>5.0</span>
+                          <span>7.5</span>
+                          <span>10.0</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="py-40 text-center space-y-4">
+                <div className="animate-spin w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full mx-auto" />
+                <p className="text-zinc-500 text-sm font-bold">Calculando estatísticas da turma...</p>
+              </div>
+            )}
           </div>
         )}
       </div>

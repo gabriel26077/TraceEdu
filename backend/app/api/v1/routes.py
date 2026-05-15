@@ -39,6 +39,7 @@ from app.application.enrollment.create_enrollment_use_case import CreateEnrollme
 from app.application.enrollment.post_grade_use_case import PostGradeUseCase, PostGradeInput
 from app.application.academic.save_assessment_grade_use_case import SaveAssessmentGradeUseCase, SaveAssessmentGradeInput
 from app.application.academic.bulk_save_grades_use_case import BulkSaveGradesUseCase
+from app.application.academic.get_offering_stats_use_case import GetOfferingStatsUseCase
 from app.application.academic.list_offering_grades_use_case import ListOfferingGradesUseCase
 from app.application.classroom.create_group_use_case import CreateGroupUseCase, CreateGroupInput
 from app.application.classroom.list_groups_use_case import ListGroupsUseCase
@@ -62,7 +63,7 @@ from .schemas import (
     UserCreate, UserResponse, BulkUsersImport,
     SubjectCreate, SubjectResponse,
     SubjectOfferingCreate, SubjectOfferingResponse,
-    GradeCreate, GradeResponse, BulkGradesCreate,
+    GradeCreate, GradeResponse, BulkGradesCreate, OfferingStats,
     EnrollmentCreate, EnrollmentResponse,
     ClassGroupCreate, ClassGroupResponse,
     EnrollStudentInGroupRequest,
@@ -679,6 +680,15 @@ def bulk_post_grades(school_id: str, offering_id: str, data: BulkGradesCreate, d
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/schools/{school_id}/subject-offerings/{offering_id}/stats", response_model=OfferingStats)
+def get_offering_stats(school_id: str, offering_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    grade_repo = SQLAlchemyGradeRepository(db)
+    offering_repo = SQLAlchemySubjectOfferingRepository(db)
+    subject_repo = SQLAlchemySubjectRepository(db)
+    
+    use_case = GetOfferingStatsUseCase(grade_repo, offering_repo, subject_repo)
+    return use_case.execute(offering_id)
 
 @router.get("/status")
 def get_status():
