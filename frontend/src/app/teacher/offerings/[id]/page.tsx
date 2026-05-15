@@ -13,7 +13,8 @@ import {
   FileText,
   AlertCircle,
   GraduationCap,
-  Calendar
+  Calendar,
+  Save
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -47,6 +48,8 @@ export default function TeacherOfferingPage() {
   const [students, setStudents] = useState<Student[]>([])
   const [teachers, setTeachers] = useState<any[]>([])
   const [grades, setGrades] = useState<any[]>([])
+  const [pendingGrades, setPendingGrades] = useState<Record<string, number>>({})
+  const [isSaving, setIsSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<"members" | "grades" | "stats">("members")
   const [activeUnitTab, setActiveUnitTab] = useState(1)
@@ -85,47 +88,105 @@ export default function TeacherOfferingPage() {
     fetchData()
   }, [currentSchool, params.id])
 
-  const handleGradeChange = async (studentId: string, unit: number, av: number, value: string) => {
-    if (value === "" || !currentSchool) return
+  const handleGradeChange = (studentId: string, unit: number, av: number, value: string, target?: HTMLInputElement) => {
+    if (!currentSchool) return
+    const key = `${studentId}|${unit}|${av}`
+    
+    if (value === "") {
+        setPendingGrades(prev => {
+            const next = { ...prev }
+            delete next[key]
+            return next
+        })
+        return
+    }
+
     try {
       const val = parseFloat(value.replace(",", "."))
-      if (isNaN(val)) return
-      
-      if (val < 0 || val > 10) {
-        alert("A nota deve estar entre 0 e 10")
+      if (isNaN(val)) {
+        if (target) target.value = ""
         return
       }
       
-      await api.post(`/schools/${currentSchool.uid}/subject-offerings/${offering!.uid}/students/${studentId}/grades`, {
-        unit,
-        assessment_number: av,
-        value: val
+      if (val < 0 || val > 10) {
+        alert("A nota deve estar entre 0 e 10")
+        if (target) target.value = ""
+        setPendingGrades(prev => {
+            const next = { ...prev }
+            delete next[key]
+            return next
+        })
+        return
+      }
+      
+      setPendingGrades(prev => ({
+        ...prev,
+        [key]: val
+      }))
+    } catch (err) {
+      if (target) target.value = ""
+      console.error("Invalid grade value:", value)
+    }
+  }
+
+  const handleSaveGrades = async () => {
+    if (Object.keys(pendingGrades).length === 0 || !currentSchool || !offering) return
+    setIsSaving(true)
+    try {
+      const gradesArray = Object.entries(pendingGrades).map(([key, value]) => {
+        const [student_id, unit, assessment_number] = key.split("|")
+        return {
+          student_id,
+          unit: parseInt(unit),
+          assessment_number: parseInt(assessment_number),
+          value
+        }
       })
       
-      setGrades(prev => {
-         const existing = prev.findIndex(g => g.student_id === studentId && g.unit === unit && g.assessment_number === av)
-         if (existing !== -1) {
-           const newGrades = [...prev]
-           newGrades[existing] = { ...newGrades[existing], value: val }
-           return newGrades
-         } else {
-           return [...prev, { student_id: studentId, unit, assessment_number: av, value: val }]
-         }
+      await api.post(`/schools/${currentSchool.uid}/subject-offerings/${offering.uid}/bulk-grades`, {
+        grades: gradesArray
       })
+      
+      // Refresh grades
+      const offeringGrades = await api.get<any[]>(`/schools/${currentSchool.uid}/subject-offerings/${params.id}/grades`)
+      setGrades(offeringGrades)
+      setPendingGrades({})
     } catch (err) {
-      console.error("Error saving grade:", err)
+      console.error("Error saving grades:", err)
+      alert("Erro ao lançar notas.")
+    } finally {
+      setIsSaving(false)
     }
   }
 
   const getGradeValue = (studentId: string, unit: number, av: number) => {
+    const key = `${studentId}|${unit}|${av}`
+    if (key in pendingGrades) return pendingGrades[key].toString()
+    
     const grade = grades.find(g => g.student_id === studentId && g.unit === unit && g.assessment_number === av)
     return grade ? grade.value.toString() : ""
   }
 
   const calculateUnitMean = (studentId: string, unit: number) => {
-    const unitGrades = grades.filter(g => g.student_id === studentId && g.unit === unit)
-    if (unitGrades.length === 0) return "--"
-    const sum = unitGrades.reduce((acc, g) => acc + g.value, 0)
+    // Merge persisted and pending
+    const studentGradesMap: Record<number, number> = {}
+    
+    // Persisted
+    grades.filter(g => g.student_id === studentId && g.unit === unit).forEach(g => {
+        studentGradesMap[g.assessment_number] = g.value
+    })
+    
+    // Pending
+    Object.entries(pendingGrades).forEach(([key, value]) => {
+        const [sid, u, av] = key.split("|")
+        if (sid === studentId && parseInt(u) === unit) {
+            studentGradesMap[parseInt(av)] = value
+        }
+    })
+
+    const unitGradesValues = Object.values(studentGradesMap)
+    if (unitGradesValues.length === 0) return "--"
+    const sum = unitGradesValues.reduce((acc, val) => acc + val, 0)
     return (sum / (subject?.assessments_per_unit || 1)).toFixed(1)
   }
 
@@ -290,25 +351,56 @@ export default function TeacherOfferingPage() {
 
         {activeTab === "grades" && (
           <div className="space-y-6">
-             {/* Unit Tabs */}
-             <div className="flex gap-4 border-b border-zinc-900 pb-px overflow-x-auto">
-                {Array.from({ length: subject?.academic_units || 0 }, (_, i) => i + 1).map(unit => (
-                  <button
-                    key={unit}
-                    onClick={() => setActiveUnitTab(unit)}
-                    className={cn(
-                      "pb-4 text-sm font-bold transition-all relative px-2 whitespace-nowrap",
-                      activeUnitTab === unit 
-                        ? "text-emerald-500" 
-                        : "text-zinc-600 hover:text-zinc-400"
-                    )}
-                  >
-                    Unidade {unit}
-                    {activeUnitTab === unit && (
-                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                    )}
-                  </button>
-                ))}
+             {/* Unit Tabs & Actions */}
+             <div className="flex justify-between items-end border-b border-zinc-900 pb-px">
+                 <div className="flex gap-4 overflow-x-auto scrollbar-hide">
+                    {Array.from({ length: subject?.academic_units || 0 }, (_, i) => i + 1).map(unit => (
+                      <button
+                        key={unit}
+                        onClick={() => setActiveUnitTab(unit)}
+                        className={cn(
+                          "pb-4 text-sm font-bold transition-all relative px-2 whitespace-nowrap",
+                          activeUnitTab === unit 
+                            ? "text-emerald-500" 
+                            : "text-zinc-600 hover:text-zinc-400"
+                        )}
+                      >
+                        Unidade {unit}
+                        {activeUnitTab === unit && (
+                          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                        )}
+                      </button>
+                    ))}
+                 </div>
+
+                 {Object.keys(pendingGrades).length > 0 && (
+                    <div className="pb-3 flex gap-3 animate-in fade-in slide-in-from-right-4 duration-300">
+                        <button 
+                            onClick={() => setPendingGrades({})}
+                            disabled={isSaving}
+                            className="px-4 py-2 text-xs font-bold text-zinc-500 hover:text-zinc-300 transition-colors"
+                        >
+                            Descartar
+                        </button>
+                        <button 
+                            onClick={handleSaveGrades}
+                            disabled={isSaving}
+                            className="flex items-center gap-2 px-6 py-2 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 rounded-xl text-xs font-black shadow-lg shadow-emerald-500/20 transition-all transform hover:scale-105 active:scale-95"
+                        >
+                            {isSaving ? (
+                                <>
+                                    <div className="w-3 h-3 border-2 border-zinc-950/30 border-t-zinc-950 rounded-full animate-spin" />
+                                    Salvando...
+                                </>
+                            ) : (
+                                <>
+                                    <Save size={14} />
+                                    Lançar {Object.keys(pendingGrades).length} Notas
+                                </>
+                            )}
+                        </button>
+                    </div>
+                 )}
              </div>
 
              {/* Grades Table */}
@@ -338,13 +430,13 @@ export default function TeacherOfferingPage() {
                              <td key={av} className="px-1 py-2">
                                 <div className="flex justify-center">
                                   <input 
-                                    key={`${student.uid}-${activeUnitTab}-${av}`}
+                                    key={`${student.uid}|${activeUnitTab}|${av}`}
                                     type="text" 
                                     inputMode="decimal"
                                     placeholder="0.0" 
                                     defaultValue={getGradeValue(student.uid, activeUnitTab, av)}
                                     onBlur={(e) => {
-                                      handleGradeChange(student.uid, activeUnitTab, av, e.target.value)
+                                      handleGradeChange(student.uid, activeUnitTab, av, e.target.value, e.target as HTMLInputElement)
                                     }}
                                     className="w-14 h-9 bg-zinc-900/30 border border-zinc-800/50 rounded-lg text-center text-xs font-bold text-white focus:outline-none focus:border-emerald-500/50 transition-all placeholder:text-zinc-800 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                   />

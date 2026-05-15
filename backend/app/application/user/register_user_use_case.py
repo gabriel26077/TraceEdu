@@ -12,6 +12,7 @@ class RegisterUserInput:
     roles: List[str]
     email: Optional[str] = None
     cpf: Optional[str] = None
+    birthdate: Optional[str] = None
 
 import uuid
 
@@ -25,7 +26,8 @@ class RegisterUserUseCase:
             uid=str(uuid.uuid4()),
             name=input.name,
             email=input.email,
-            cpf=input.cpf
+            cpf=input.cpf,
+            birthdate=input.birthdate
         )
         self.repository.save(user)
         

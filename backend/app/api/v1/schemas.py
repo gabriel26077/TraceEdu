@@ -6,6 +6,7 @@ class UserCreate(BaseModel):
     roles: List[str]
     email: Optional[EmailStr] = None
     cpf: Optional[str] = None
+    birthdate: Optional[str] = None
     password: Optional[str] = None
 
 class UserResponse(BaseModel):
@@ -14,9 +15,15 @@ class UserResponse(BaseModel):
     roles: List[str]
     email: Optional[str] = None
     cpf: Optional[str] = None
+    birthdate: Optional[str] = None
 
     class Config:
         from_attributes = True
+
+class BulkUsersImport(BaseModel):
+    school_id: str
+    raw_csv: str
+    roles: List[str] = ["student"]
 
 class SubjectCreate(BaseModel):
     name: str
@@ -63,6 +70,16 @@ class GradeCreate(BaseModel):
     assessment_number: int
     value: float = Field(..., ge=0, le=10)
     observations: Optional[str] = None
+
+class StudentGradeCreate(BaseModel):
+    student_id: str
+    unit: int
+    assessment_number: int
+    value: float = Field(..., ge=0, le=10)
+    observations: Optional[str] = None
+
+class BulkGradesCreate(BaseModel):
+    grades: List[StudentGradeCreate]
 
 class GradeResponse(BaseModel):
     uid: str

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { api } from "@/lib/api"
-import { Users, Plus, Mail, Shield, Search, AlertCircle, X, User as UserIcon, GraduationCap, Trash2 } from "lucide-react"
+import { Users, Plus, Mail, Shield, Search, AlertCircle, X, User as UserIcon, GraduationCap, Trash2, FileText } from "lucide-react"
 import { useSchool } from "@/contexts/SchoolContext"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -11,6 +11,8 @@ interface User {
   uid: string
   name: string
   email?: string
+  cpf?: string
+  birthdate?: string
   roles: string[]
 }
 
@@ -18,8 +20,14 @@ export default function StudentsPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false)
+  const [bulkCsv, setBulkCsv] = useState("")
+  const [isImporting, setIsImporting] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
+    email: "",
+    cpf: "",
+    birthdate: "",
     roles: ["student"]
   })
   const { currentSchool, currentRole, isSuperAdmin, isLoading } = useSchool()
@@ -63,11 +71,32 @@ export default function StudentsPage() {
     try {
       await api.post(`/schools/${currentSchool.uid}/users`, formData)
       setIsModalOpen(false)
-      setFormData({ name: "", roles: ["student"] })
+      setFormData({ name: "", email: "", cpf: "", birthdate: "", roles: ["student"] })
       fetchStudents()
       alert("Student added successfully!")
     } catch (err: any) {
       alert(err.message || "Error creating student")
+    }
+  }
+
+  const handleBulkImport = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!currentSchool) return
+    setIsImporting(true)
+    try {
+      await api.post("/platform/users/bulk", {
+        school_id: currentSchool.uid,
+        raw_csv: bulkCsv,
+        roles: ["student"]
+      })
+      setIsBulkModalOpen(false)
+      setBulkCsv("")
+      fetchStudents()
+      alert("Bulk import completed!")
+    } catch (err: any) {
+      alert(err.message || "Error importing students")
+    } finally {
+      setIsImporting(false)
     }
   }
 
@@ -99,13 +128,24 @@ export default function StudentsPage() {
           </h2>
           <p className="text-zinc-500 mt-1">Enrollment registry for <span className="text-emerald-400 font-semibold">{currentSchool.name}</span></p>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl transition-all shadow-lg shadow-emerald-500/10"
-        >
-          <Plus size={20} />
-          <span>Add Student</span>
-        </button>
+        <div className="flex gap-3">
+          {isSuperAdmin && (
+            <button 
+                onClick={() => setIsBulkModalOpen(true)}
+                className="flex items-center gap-2 px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white font-bold rounded-xl transition-all border border-zinc-800"
+            >
+                <FileText size={20} />
+                <span>Import CSV</span>
+            </button>
+          )}
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl transition-all shadow-lg shadow-emerald-500/10"
+          >
+            <Plus size={20} />
+            <span>Add Student</span>
+          </button>
+        </div>
       </header>
 
       {/* Stats & Search */}
@@ -143,7 +183,19 @@ export default function StudentsPage() {
                     </div>
                     <div>
                       <p className="text-sm font-bold text-zinc-200 group-hover:text-emerald-400 transition-colors">{user.name}</p>
-                      <p className="text-[10px] text-zinc-600 font-mono">{user.uid.split("-")[0]}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <p className="text-[10px] text-zinc-600 font-mono">{user.uid.split("-")[0]}</p>
+                        {user.email && (
+                            <span className="text-[10px] text-zinc-500 italic flex items-center gap-1">
+                                <Mail size={10} /> {user.email}
+                            </span>
+                        )}
+                        {user.cpf && (
+                            <span className="text-[10px] text-zinc-700 bg-zinc-800/50 px-1.5 rounded flex items-center gap-1">
+                                <Shield size={10} /> {user.cpf}
+                            </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </td>
@@ -207,6 +259,47 @@ export default function StudentsPage() {
                 </div>
               </label>
 
+              <div className="grid grid-cols-2 gap-4">
+                <label className="block">
+                  <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1">CPF (Optional)</span>
+                  <div className="relative mt-2">
+                    <Shield className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={16} />
+                    <input 
+                      className="premium-input pl-10 py-3 text-sm" 
+                      placeholder="000.000.000-00" 
+                      value={formData.cpf} 
+                      onChange={e => setFormData({ ...formData, cpf: e.target.value })} 
+                    />
+                  </div>
+                </label>
+                <label className="block">
+                  <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1">Birthdate (Optional)</span>
+                  <div className="relative mt-2">
+                    <AlertCircle className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={16} />
+                    <input 
+                      type="date"
+                      className="premium-input pl-10 py-3 text-sm" 
+                      value={formData.birthdate} 
+                      onChange={e => setFormData({ ...formData, birthdate: e.target.value })} 
+                    />
+                  </div>
+                </label>
+              </div>
+
+              <label className="block">
+                <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1">Email Address (Optional)</span>
+                <div className="relative mt-2">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={18} />
+                  <input 
+                    type="email"
+                    className="premium-input pl-12 py-4" 
+                    placeholder="student@example.com" 
+                    value={formData.email} 
+                    onChange={e => setFormData({ ...formData, email: e.target.value })} 
+                  />
+                </div>
+              </label>
+
               <div className="flex items-center gap-3 pt-4">
                 <button 
                   type="button"
@@ -220,6 +313,58 @@ export default function StudentsPage() {
                   className="flex-[2] py-4 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black rounded-2xl transition-all shadow-xl shadow-emerald-500/10 active:scale-95"
                 >
                   ENROLL STUDENT
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Bulk Import Modal */}
+      {isBulkModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 animate-in fade-in duration-300">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            <header className="p-6 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
+              <div>
+                <h3 className="text-xl font-bold text-white">Bulk Student Import</h3>
+                <p className="text-xs text-zinc-500 mt-1">Paste CSV data below: name,email,cpf,birthdate</p>
+              </div>
+              <button 
+                onClick={() => setIsBulkModalOpen(false)}
+                className="p-2 hover:bg-zinc-800 rounded-full text-zinc-500 hover:text-white transition-all"
+              >
+                <X size={20} />
+              </button>
+            </header>
+
+            <form onSubmit={handleBulkImport} className="p-8 space-y-6">
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1">CSV Content</span>
+                    <span className="text-[10px] text-zinc-700 italic">Format: Name, Email, CPF, Birthdate (YYYY-MM-DD)</span>
+                </div>
+                <textarea 
+                  required 
+                  className="premium-input min-h-[300px] font-mono text-xs py-4 resize-none" 
+                  placeholder="John Doe,john@example.com,123.456.789-00,1995-05-20&#10;Jane Smith,jane@example.com,987.654.321-11,1998-12-10" 
+                  value={bulkCsv} 
+                  onChange={e => setBulkCsv(e.target.value)} 
+                />
+              </div>
+
+              <div className="flex items-center gap-3 pt-4">
+                <button 
+                  type="button"
+                  onClick={() => setIsBulkModalOpen(false)}
+                  className="flex-1 py-4 text-sm font-bold text-zinc-500 hover:text-white transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isImporting || !bulkCsv.trim()}
+                  className="flex-[2] py-4 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-black rounded-2xl transition-all shadow-xl shadow-emerald-500/10 active:scale-95"
+                >
+                  {isImporting ? "IMPORTING..." : "START BULK IMPORT"}
                 </button>
               </div>
             </form>

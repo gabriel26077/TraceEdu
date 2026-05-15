@@ -19,6 +19,7 @@ from app.infrastructure.persistence.postgresql import (
 
 # Application Use Cases
 from app.application.user.register_user_use_case import RegisterUserUseCase, RegisterUserInput
+from app.application.user.bulk_register_users_use_case import BulkRegisterUsersUseCase
 from app.application.user.list_users_use_case import ListUsersUseCase
 from app.application.subject.register_subject_use_case import (
     RegisterSubjectUseCase, 
@@ -37,6 +38,7 @@ from app.application.subject.delete_offering_use_case import DeleteOfferingUseCa
 from app.application.enrollment.create_enrollment_use_case import CreateEnrollmentUseCase, CreateEnrollmentInput
 from app.application.enrollment.post_grade_use_case import PostGradeUseCase, PostGradeInput
 from app.application.academic.save_assessment_grade_use_case import SaveAssessmentGradeUseCase, SaveAssessmentGradeInput
+from app.application.academic.bulk_save_grades_use_case import BulkSaveGradesUseCase
 from app.application.academic.list_offering_grades_use_case import ListOfferingGradesUseCase
 from app.application.classroom.create_group_use_case import CreateGroupUseCase, CreateGroupInput
 from app.application.classroom.list_groups_use_case import ListGroupsUseCase
@@ -57,10 +59,10 @@ from app.domain.enrollment.policies import SubstitutionRecoveryPolicy
 
 # Schemas
 from .schemas import (
-    UserCreate, UserResponse,
+    UserCreate, UserResponse, BulkUsersImport,
     SubjectCreate, SubjectResponse,
     SubjectOfferingCreate, SubjectOfferingResponse,
-    GradeCreate, GradeResponse,
+    GradeCreate, GradeResponse, BulkGradesCreate,
     EnrollmentCreate, EnrollmentResponse,
     ClassGroupCreate, ClassGroupResponse,
     EnrollStudentInGroupRequest,
@@ -146,6 +148,20 @@ def list_platform_users(db: Session = Depends(get_db), _ = Depends(verify_platfo
     use_case = ListGlobalUsersUseCase(db)
     return use_case.execute()
 
+@router.post("/platform/users/bulk")
+def bulk_register_platform_users(data: BulkUsersImport, db: Session = Depends(get_db), _ = Depends(verify_platform_admin)):
+    try:
+        repository = SQLAlchemyUserRepository(db)
+        member_repo = SQLAlchemySchoolMemberRepository(db)
+        use_case = BulkRegisterUsersUseCase(repository, member_repo)
+        
+        results = use_case.execute(data.school_id, data.raw_csv, data.roles)
+        db.commit()
+        return {"results": results}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
 from app.application.user.purge_user_use_case import PurgeUserUseCase
 
 @router.delete("/platform/users/{user_id}", status_code=204)
@@ -170,7 +186,7 @@ def register_user(school_id: str, user_data: UserCreate, db: Session = Depends(g
         use_case = RegisterUserUseCase(repository, member_repo)
         use_case_input = RegisterUserInput(
             name=user_data.name, school_id=school_id, roles=user_data.roles, 
-            email=user_data.email, cpf=user_data.cpf
+            email=user_data.email, cpf=user_data.cpf, birthdate=user_data.birthdate
         )
         result = use_case.execute(use_case_input)
         
@@ -644,6 +660,24 @@ def post_grade_assessment(school_id: str, offering_id: str, student_id: str, gra
         return result
     except Exception as e:
         db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/schools/{school_id}/subject-offerings/{offering_id}/bulk-grades", status_code=204)
+def bulk_post_grades(school_id: str, offering_id: str, data: BulkGradesCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user), _ = Depends(verify_school_access)):
+    try:
+        repo = SQLAlchemyGradeRepository(db)
+        use_case = BulkSaveGradesUseCase(repo)
+        
+        # Convert Pydantic models to dicts for the use case
+        grades_list = [g.model_dump() for g in data.grades]
+        
+        use_case.execute(offering_id, grades_list)
+        db.commit()
+        return None
+    except Exception as e:
+        db.rollback()
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/status")
